@@ -1,0 +1,2405 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Oche</title>
+<meta name="description" content="Darts zählen, gegen Bots spielen und trainieren.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Oche">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+[hidden] { display: none !important; }
+/* Layout: iOS app shell. Content layer = inset grouped lists and score cards on the grouped background.
+   Function layer (the only place for glass) = floating tab bar / sidebar, bar buttons, sheets, banners. */
+:root {
+  --bg: #f2f2f7;
+  --cell: #ffffff;
+  --label: #000000;
+  --label-2: rgba(60, 60, 67, .74);
+  --label-3: rgba(60, 60, 67, .34);
+  --sep: rgba(60, 60, 67, .24);
+  --fill: rgba(120, 120, 128, .2);
+  --fill-2: rgba(120, 120, 128, .14);
+  --fill-3: rgba(118, 118, 128, .1);
+  --key: #ffffff;
+  --key-down: #dcdce1;
+  --thumb: #ffffff;
+  --accent: #0066cc;
+  --accent-fill: #0066cc;
+  --on-accent: #ffffff;
+  --red: #d70015;
+  --glass: rgba(250, 250, 252, .64);
+  --glass-solid: #f7f7f9;
+  --glass-edge: rgba(255, 255, 255, .8);
+  --glass-hi: rgba(255, 255, 255, .55);
+  --glass-shadow: 0 8px 28px rgba(0, 0, 0, .1), 0 1px 3px rgba(0, 0, 0, .07);
+  --scrim: rgba(0, 0, 0, .2);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Helvetica Neue", Arial, sans-serif;
+  --font-num: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --r-group: 24px;
+  --r-key: 14px;
+  --spring: cubic-bezier(.2, .9, .3, 1.04);
+  accent-color: var(--accent);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --cell: #1c1c1e;
+    --label: #ffffff; --label-2: rgba(235, 235, 245, .66); --label-3: rgba(235, 235, 245, .32); --sep: rgba(84, 84, 88, .7);
+    --fill: rgba(120, 120, 128, .36); --fill-2: rgba(120, 120, 128, .28); --fill-3: rgba(118, 118, 128, .2);
+    --key: #2c2c2e; --key-down: #48484a; --thumb: #636366;
+    --accent: #0a84ff; --accent-fill: #0a6fdb; --red: #ff453a;
+    --glass: rgba(38, 38, 42, .58); --glass-solid: #1f1f22; --glass-edge: rgba(255, 255, 255, .16); --glass-hi: rgba(255, 255, 255, .12);
+    --glass-shadow: 0 8px 28px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .4); --scrim: rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --cell: #1c1c1e;
+  --label: #ffffff; --label-2: rgba(235, 235, 245, .66); --label-3: rgba(235, 235, 245, .32); --sep: rgba(84, 84, 88, .7);
+  --fill: rgba(120, 120, 128, .36); --fill-2: rgba(120, 120, 128, .28); --fill-3: rgba(118, 118, 128, .2);
+  --key: #2c2c2e; --key-down: #48484a; --thumb: #636366;
+  --accent: #0a84ff; --accent-fill: #0a6fdb; --red: #ff453a;
+  --glass: rgba(38, 38, 42, .58); --glass-solid: #1f1f22; --glass-edge: rgba(255, 255, 255, .16); --glass-hi: rgba(255, 255, 255, .12);
+  --glass-shadow: 0 8px 28px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .4); --scrim: rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+/* Increase Contrast */
+@media (prefers-contrast: more) {
+  :root { --label-2: rgba(60, 60, 67, .92); --sep: rgba(60, 60, 67, .5); --fill-3: rgba(118, 118, 128, .2); --glass: var(--glass-solid); }
+  :root[data-theme="dark"] { --label-2: rgba(235, 235, 245, .86); --sep: rgba(235, 235, 245, .4); }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --label-2: rgba(235, 235, 245, .86); --sep: rgba(235, 235, 245, .4); }
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  :root { --spring: linear(0, .063 2.4%, .247 5.2%, .53 8.8%, .771 12.6%, .902 15.8%, .985 19.4%, 1.028 23.4%, 1.04 27.6%, 1.033 33%, 1.011 43%, .999 56%, 1); }
+}
+
+/* Dynamic Type: on Apple devices the root size follows the user's text size setting. */
+html {
+  height: 100%;
+  box-sizing: border-box;
+  font-size: 106.25%;
+  font: -apple-system-body;
+  font-family: var(--font);
+  background: var(--bg);
+}
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--label);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+button, input, select { font: inherit; color: inherit; }
+button { border: 0; background: none; padding: 0; cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+button:disabled { opacity: .35; cursor: default; }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 700; }
+p { margin: 0; }
+svg.i { width: 1.35em; height: 1.35em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
+/* Type ramp (iOS sizes at "Large", relative to the 17 pt body) */
+.lt { font-size: 2rem; line-height: 1.2; font-weight: 700; letter-spacing: .01em; }
+.t2 { font-size: 1.294rem; line-height: 1.25; font-weight: 700; }
+.t3 { font-size: 1.176rem; line-height: 1.25; font-weight: 600; }
+.sub { font-size: .882rem; }
+.fn { font-size: .765rem; }
+.dim { color: var(--label-2); }
+
+/* ---------- App shell ---------- */
+#app { height: 100%; position: relative; overflow: hidden; }
+.view { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+.content {
+  max-width: 680px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 54px 124px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.content > .lt { margin-bottom: -12px; }
+
+/* Glass: function layer only */
+.glass {
+  position: relative;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  backdrop-filter: blur(20px) saturate(1.8);
+  box-shadow: inset 0 0 0 .5px var(--glass-edge), inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+}
+.glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at var(--gx, 30%) -20%, var(--glass-hi), transparent 55%);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass { background: var(--glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .glass::after { display: none; }
+}
+@media (prefers-contrast: more) {
+  .glass { -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: inset 0 0 0 1px var(--sep), var(--glass-shadow); }
+}
+
+/* Top bar: transparent with a soft scroll edge; the inline title appears once the large title scrolls away */
+.topbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 5;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 6px;
+  pointer-events: none;
+}
+.topbar > * { pointer-events: auto; }
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -20px;
+  z-index: -1;
+  background: linear-gradient(var(--bg) 35%, color-mix(in srgb, var(--bg) 0%, transparent));
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(#000 55%, transparent);
+  mask-image: linear-gradient(#000 55%, transparent);
+  opacity: 0;
+  transition: opacity .25s;
+  pointer-events: none;
+}
+.topbar.scrolled::before { opacity: 1; }
+.tb-title { font-weight: 600; font-size: 1rem; text-align: center; opacity: 0; transition: opacity .2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw; }
+.topbar.scrolled .tb-title { opacity: 1; }
+.tb-r { justify-self: end; display: flex; gap: 8px; }
+.gbtn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--label); }
+.gbtn svg.i { width: 22px; height: 22px; stroke-width: 2.1; }
+.gcap { min-height: 44px; padding: 0 18px; border-radius: 22px; font-weight: 600; color: var(--accent); }
+.gbtn, .gcap { transition: transform .3s var(--spring); }
+.gbtn:active, .gcap:active { transform: scale(.92); }
+
+/* Floating tab bar (iPhone); sidebar on wide screens (iPad, Mac) */
+.tabbar {
+  position: absolute;
+  z-index: 6;
+  left: max(max(16px, env(safe-area-inset-left, 0px)), calc(50% - 210px));
+  bottom: 10px;
+  width: min(420px, calc(100% - 2 * max(16px, env(safe-area-inset-left, 0px))));
+  height: 64px;
+  padding: 4px;
+  border-radius: 32px;
+  display: flex;
+  overflow: hidden;
+  transition: width .5s var(--spring), left .5s var(--spring);
+  view-transition-name: tabbar;
+}
+.tab {
+  flex: 1 0 0;
+  min-width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 28px;
+  color: var(--label);
+  font-size: .647rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color .2s, color .2s, opacity .2s;
+}
+.tab svg.i { width: 26px; height: 26px; stroke-width: 1.8; }
+.tab[aria-current="page"] { color: var(--accent); background: var(--fill-3); }
+.tabbar.compact { width: 64px; left: max(16px, env(safe-area-inset-left, 0px)); }
+.tabbar.compact .tab:not([aria-current="page"]) { flex: 0 0 0; min-width: 0; opacity: 0; pointer-events: none; }
+.tabbar.compact .tab span { display: none; }
+@media (min-width: 900px) {
+  .tabbar, .tabbar.compact {
+    left: max(10px, env(safe-area-inset-left, 0px)); top: 10px; bottom: 10px;
+    width: 250px; height: auto;
+    flex-direction: column; gap: 2px; padding: 12px 8px;
+    border-radius: 28px;
+  }
+  .tabbar .tab, .tabbar.compact .tab:not([aria-current="page"]) {
+    flex: none; flex-direction: row; justify-content: flex-start; gap: 12px;
+    min-height: 44px; padding: 0 14px; border-radius: 22px;
+    font-size: 1rem; font-weight: 500; opacity: 1; pointer-events: auto;
+  }
+  .tabbar.compact .tab span { display: inline; }
+  .tabbar .tab svg.i { width: 22px; height: 22px; }
+  .tabbar .tab[aria-current="page"] { font-weight: 600; }
+  .with-side .content { padding-left: 290px; max-width: 1000px; }
+  .with-side .topbar { padding-left: 290px; }
+}
+
+/* ---------- Content: cards and inset grouped lists ---------- */
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec-title { font-size: 1.294rem; font-weight: 700; }
+.group { display: flex; flex-direction: column; gap: 7px; }
+.group-h { font-size: .882rem; font-weight: 600; color: var(--label-2); padding: 0 16px; }
+.group-f { font-size: .765rem; line-height: 1.35; color: var(--label-2); padding: 0 16px; }
+.cells { background: var(--cell); border-radius: var(--r-group); overflow: hidden; }
+.cell {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 16px;
+  text-align: left;
+}
+.cell + .cell::before { content: ""; position: absolute; top: 0; right: 0; left: 16px; border-top: .5px solid var(--sep); }
+.cells.icons .cell + .cell::before { left: 58px; }
+button.cell { transition: background-color .15s; }
+button.cell:active { background: var(--fill-2); }
+.cell-icon { width: 30px; display: grid; place-items: center; color: var(--accent); }
+.cell-icon svg.i { width: 26px; height: 26px; }
+.cell-main { flex: 1 1 9em; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cell-t { font-size: 1rem; }
+.cell-s { font-size: .882rem; color: var(--label-2); }
+.cell-v { margin-left: auto; color: var(--label-2); text-align: right; font-variant-numeric: tabular-nums; font-size: .882rem; }
+.cell-v b { display: block; color: var(--label); font-weight: 600; font-size: 1rem; }
+.chev { color: var(--label-3); display: grid; place-items: center; }
+.chev svg.i { width: 14px; height: 14px; stroke-width: 2.6; }
+.cell.act { color: var(--accent); }
+.cell.full > * { flex: 1 1 100%; }
+.card { background: var(--cell); border-radius: var(--r-group); padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.card .row { display: flex; flex-wrap: wrap; gap: 10px; }
+.card .row > * { flex: 1 1 9em; }
+.intro { font-size: 1rem; line-height: 1.45; max-width: 62ch; }
+.intro b { font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { min-height: 32px; padding: 6px 12px; border-radius: 16px; background: var(--fill-3); font-weight: 600; font-size: .882rem; display: inline-flex; align-items: center; }
+
+/* Buttons */
+.btn {
+  min-height: 50px;
+  padding: 12px 22px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--fill-2);
+  color: var(--accent);
+  transition: transform .3s var(--spring), filter .2s;
+}
+.btn:active { transform: scale(.97); filter: brightness(.92); }
+.btn.fill { background: var(--accent-fill); color: var(--on-accent); }
+.btn.destr { color: var(--red); }
+.btn.small { min-height: 44px; padding: 8px 16px; font-size: .882rem; }
+
+/* Segmented control */
+.segc {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  min-height: 44px;
+  padding: 2px;
+  border-radius: 22px;
+  background: var(--fill-3);
+  width: 100%;
+}
+.segc::before {
+  content: "";
+  position: absolute;
+  top: 2px; bottom: 2px;
+  left: calc(2px + (100% - 4px) / var(--n) * var(--i));
+  width: calc((100% - 4px) / var(--n));
+  border-radius: 20px;
+  background: var(--thumb);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .04);
+  transition: left .45s var(--spring);
+}
+.segc button { position: relative; z-index: 1; min-height: 40px; padding: 4px 6px; font-size: .882rem; font-weight: 500; border-radius: 20px; overflow-wrap: anywhere; }
+.segc button[aria-pressed="true"] { font-weight: 600; }
+
+/* Stepper, pop-up button, text field, switch */
+.stepper { display: inline-flex; align-items: center; border-radius: 22px; background: var(--fill-3); flex: none; }
+.stepper button { width: 50px; height: 44px; display: grid; place-items: center; border-radius: 22px; color: var(--label); }
+.stepper button:active { background: var(--fill-2); }
+.stepper i { width: .5px; height: 20px; background: var(--sep); }
+.stepper svg.i { width: 18px; height: 18px; stroke-width: 2.4; }
+.stepv { min-width: 2ch; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.popup { position: relative; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 6px 0 10px; border-radius: 22px; color: var(--accent); font-weight: 500; margin-left: auto; }
+.popup svg.i { width: 15px; height: 15px; stroke-width: 2.4; }
+.popup select { position: absolute; inset: 0; opacity: 0; width: 100%; font-size: 16px; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.popup:active { background: var(--fill-3); }
+.tf { flex: 1 1 8em; min-width: 0; min-height: 44px; padding: 0 2px; border: 0; background: none; font-size: max(16px, 1rem); }
+.tf::placeholder { color: var(--label-3); }
+.tf:focus { outline: none; }
+.cell:has(.tf:focus) { box-shadow: inset 0 0 0 2px var(--accent); border-radius: var(--r-group); }
+input.switch { width: 51px; height: 31px; margin: 0 0 0 auto; flex: none; cursor: pointer; }
+.noswitch input.switch {
+  -webkit-appearance: none; appearance: none;
+  position: relative; border-radius: 16px; background: var(--fill); transition: background-color .25s;
+}
+.noswitch input.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%;
+  background: #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .15), 0 1px 1px rgba(0, 0, 0, .16);
+  transition: transform .35s var(--spring);
+}
+.noswitch input.switch:checked { background: var(--accent-fill); }
+.noswitch input.switch:checked::after { transform: translateX(20px); }
+.pnum { width: 24px; text-align: center; color: var(--label-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ibtn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 22px; color: var(--accent); flex: none; }
+.ibtn.destr { color: var(--red); }
+.ibtn:active { background: var(--fill-3); }
+.ibtn svg.i { width: 22px; height: 22px; }
+.prow2 { flex: 1 1 100%; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; padding-left: 36px; }
+
+/* Bottom primary action */
+.cta {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 12px;
+  background: linear-gradient(color-mix(in srgb, var(--bg) 0%, transparent), var(--bg) 45%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.cta .btn { width: 100%; max-width: 480px; }
+.cta .fn { text-align: center; color: var(--label-2); }
+
+/* ---------- Play screens ---------- */
+.play { background: var(--bg); overflow-y: auto; }
+.pbar {
+  flex: none;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 6px 4px;
+}
+.pbar-t { text-align: center; min-width: 0; }
+.pbar-t b { display: block; font-weight: 600; font-size: 1rem; }
+.pbar-t span { display: block; font-size: .765rem; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pmain {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 4px 10px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.stage { flex: 1; min-height: 130px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; container-type: size; }
+.cards { flex: 1 1 auto; min-height: 0; display: grid; gap: 8px; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); }
+.pc { display: flex; flex-direction: column; min-width: 0; padding: 12px 14px; border-radius: 22px; background: var(--cell); transition: box-shadow .35s var(--spring); }
+.pc.on { box-shadow: inset 0 0 0 2.5px var(--accent); }
+.pc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; min-width: 0; }
+.pc-name { font-weight: 600; font-size: .882rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-name small { display: block; font-weight: 400; font-size: .765rem; color: var(--label-2); overflow: hidden; text-overflow: ellipsis; }
+.onbadge { flex: none; padding: 3px 8px; border-radius: 10px; background: var(--accent-fill); color: var(--on-accent); font-size: .706rem; font-weight: 600; }
+.pc-sets { font-size: .765rem; color: var(--label-2); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.pc-sets b { color: var(--label); font-weight: 600; }
+.pc-rem { font-family: var(--font-num); font-weight: 700; font-variant-numeric: tabular-nums; font-size: clamp(48px, min(22vw, 22cqh), 124px); line-height: 1; letter-spacing: -.02em; margin-top: 4px; }
+.n1 .pc-rem { font-size: clamp(64px, min(30vw, 28cqh), 150px); }
+.n3 .pc-rem, .n4 .pc-rem { font-size: clamp(36px, min(12vw, 10cqh), 64px); }
+.pc-meta { display: flex; justify-content: space-between; gap: 6px; font-size: .765rem; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.pc-log { flex: 1 1 0; min-height: 0; margin: 8px 0 0; padding: 6px 0 0; list-style: none; overflow: hidden; border-top: .5px solid var(--sep); font-variant-numeric: tabular-nums; }
+.pc-log li { display: flex; justify-content: space-between; gap: 8px; font-size: .824rem; line-height: 1.6; color: var(--label-2); }
+.pc-log li b { color: var(--label); font-weight: 600; }
+.pc-log .bust { color: var(--red); font-weight: 600; }
+.n3 .pc-log, .n4 .pc-log { display: none; }
+
+.co { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; min-height: 40px; font-size: .882rem; color: var(--label-2); }
+.co-l { font-weight: 600; color: var(--label); }
+.co .chip { background: var(--cell); color: var(--label); font-family: var(--font-num); font-size: 1rem; min-height: 34px; border-radius: 17px; }
+
+.pad { flex: none; display: flex; flex-direction: column; gap: 6px; }
+.entry-row { display: flex; gap: 8px; align-items: stretch; }
+.entry-row .segc { width: 164px; flex: none; }
+.entry { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 14px; min-height: 52px; border-radius: var(--r-key); background: var(--cell); }
+.entry-v { font-family: var(--font-num); font-weight: 600; font-size: min(2rem, 40px); font-variant-numeric: tabular-nums; }
+.entry-v.ph { color: var(--label-3); }
+.entry-h { font-size: .765rem; color: var(--label-2); text-align: right; }
+.entry-h.bad { color: var(--red); font-weight: 600; }
+.slots { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 6px; }
+.slot { display: grid; place-items: center; min-height: 52px; border-radius: var(--r-key); border: 1.5px dashed var(--sep); font-family: var(--font-num); font-weight: 600; font-size: min(1.176rem, 22px); color: var(--label-3); }
+.slot.f { border: 0; background: var(--cell); color: var(--label); }
+.slot.nx { border-color: var(--accent); border-style: solid; }
+.slot.x { border-style: solid; color: var(--red); font-size: .882rem; }
+.slot-sum { display: grid; place-items: center; min-width: 48px; font-family: var(--font-num); font-weight: 700; font-size: min(1.294rem, 24px); }
+.keys { display: grid; gap: 6px; }
+.k3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.k4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.k5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.k6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.key {
+  min-height: 52px;
+  border-radius: var(--r-key);
+  background: var(--key);
+  font-family: var(--font-num);
+  font-weight: 500;
+  font-size: min(1.5rem, 30px);
+  color: var(--label);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .06);
+  transition: background-color .15s, transform .25s var(--spring);
+}
+.key:active { background: var(--key-down); transform: scale(.96); }
+.key.sm { min-height: 44px; font-size: min(1.06rem, 20px); }
+.key.txt { font-family: var(--font); font-size: min(.94rem, 18px); font-weight: 500; }
+.key.go { background: var(--accent-fill); color: var(--on-accent); font-family: var(--font); font-weight: 600; font-size: min(1rem, 19px); }
+.key.go:active { filter: brightness(.9); }
+.key svg.i { width: 26px; height: 26px; stroke-width: 1.8; }
+.k5 .key { min-height: 46px; font-size: min(1.3rem, 25px); }
+.mods { display: grid; grid-template-columns: 1fr 1fr 64px; gap: 6px; }
+.mod { min-height: 44px; border-radius: var(--r-key); background: var(--fill-2); font-weight: 600; font-size: min(.94rem, 18px); color: var(--label); transition: background-color .2s, color .2s; }
+.mod[aria-pressed="true"] { background: var(--accent-fill); color: var(--on-accent); }
+
+.botpanel { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.botpanel .slots { width: 100%; }
+.botpanel .dboard { width: min(100%, 290px, 36vh); }
+
+/* ---------- Dartboard (content image, keeps its real colours) ---------- */
+.dboard { display: block; max-width: 100%; height: auto; aspect-ratio: 1; }
+.dboard .bk { fill: #1d1d1b; }
+.dboard .cr { fill: #ece0c2; }
+.dboard .rd { fill: #c8352b; }
+.dboard .gn { fill: #1d7a47; }
+.dboard .rim { fill: #121212; }
+.dboard .wire { fill: none; stroke: #b9bdb8; stroke-width: .7; opacity: .55; }
+.dboard .bn { fill: #f2f2f2; font: 600 19px var(--font); }
+.dboard .bn.on { font-size: 25px; font-weight: 800; }
+.dboard .hl-done { fill: var(--accent); fill-opacity: .6; }
+.dboard .hl-ring { fill: none; stroke: #ffffff; stroke-opacity: .5; animation: pulse-s 1.6s ease-in-out infinite; }
+@keyframes pulse-s { 50% { stroke-opacity: .12; } }
+.dboard .hl-t { fill: #ffffff; fill-opacity: .3; stroke: #ffffff; stroke-width: 4; animation: pulse 1.6s ease-in-out infinite; }
+.mk { transform-box: fill-box; transform-origin: center; animation: drop .4s var(--spring); }
+.mk .mk-r { fill: #111; }
+.mk .mk-d { fill: #fff; }
+.mk text { fill: #111; font: 700 9px var(--font); }
+@keyframes drop { from { transform: scale(2.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes pulse { 50% { fill-opacity: .06; } }
+
+/* ---------- Cricket ---------- */
+.ckcard { flex: 1; min-height: 0; overflow: auto; background: var(--cell); border-radius: 22px; padding: 6px 8px; }
+.ck-t { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.ck-t th { padding: 6px 4px 8px; vertical-align: bottom; font-weight: 600; font-size: .882rem; }
+.ck-t th .pn { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ck-t th .pp { display: block; font-family: var(--font-num); font-weight: 700; font-size: 2rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ck-t th .pm { display: block; font-weight: 400; font-size: .706rem; color: var(--label-2); }
+.ck-t th.on .pn { color: var(--accent); }
+.ck-t th.on .pn::before { content: "● "; }
+.ck-t td { text-align: center; border-top: .5px solid var(--sep); height: 42px; padding: 0; }
+.ck-t td.cn { font-family: var(--font-num); font-weight: 700; font-size: 1.294rem; width: 64px; }
+.ck-t tr.dead td.cn { color: var(--label-3); text-decoration: line-through; }
+.ck-t svg { width: 28px; height: 28px; vertical-align: middle; }
+.ck-t .mkc { fill: none; stroke: var(--label); stroke-width: 2.6; stroke-linecap: round; }
+.ck-t .pend .mkc { stroke: var(--accent); }
+
+/* ---------- Training ---------- */
+.trtop { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; flex: none; }
+.trtop .lab { display: block; font-size: .765rem; font-weight: 600; color: var(--label-2); }
+.trbig { font-family: var(--font-num); font-weight: 700; font-size: clamp(52px, min(20vw, 16cqh), 100px); line-height: 1; letter-spacing: -.02em; }
+.trside { text-align: right; font-size: .882rem; color: var(--label-2); line-height: 1.45; font-variant-numeric: tabular-nums; }
+.trside b { color: var(--label); font-weight: 600; }
+.trside .big { display: block; font-family: var(--font-num); font-size: min(2.6rem, 48px); line-height: 1; font-weight: 700; color: var(--label); }
+.trboard { flex: 1; min-height: 0; display: flex; justify-content: center; }
+.trboard .dboard { height: 100%; max-height: 300px; width: auto; }
+.stats3 { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--cell); border-radius: 18px; }
+.stats3 div { padding: 8px 4px; text-align: center; font-size: .706rem; color: var(--label-2); }
+.stats3 div + div { border-left: .5px solid var(--sep); }
+.stats3 b { display: block; font-family: var(--font-num); font-size: min(1.412rem, 26px); font-weight: 700; color: var(--label); font-variant-numeric: tabular-nums; }
+.dots { display: flex; gap: 8px; justify-content: center; align-items: center; font-size: .765rem; color: var(--label-2); min-height: 22px; text-align: center; flex-wrap: wrap; }
+.dots i { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--label-3); }
+.dots i.h { background: var(--accent); border-color: var(--accent); }
+.dots i.m { background: var(--label-3); border-color: transparent; }
+.bigbtns { display: grid; gap: 8px; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); }
+.bigbtn {
+  min-height: 76px;
+  border-radius: 20px;
+  background: var(--key);
+  font-weight: 600;
+  font-size: min(1.12rem, 21px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--label);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .06);
+  transition: transform .25s var(--spring), background-color .15s;
+}
+.bigbtn small { font-size: min(.765rem, 14px); font-weight: 400; color: var(--label-2); }
+.bigbtn:active { transform: scale(.97); background: var(--key-down); }
+.bigbtn.go { background: var(--accent-fill); color: var(--on-accent); }
+.bigbtn.go small { color: var(--on-accent); }
+.strip { flex: none; display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 3px; }
+.strip span { min-height: 26px; border-radius: 8px; background: var(--fill-3); display: grid; place-items: center; font-size: .706rem; font-weight: 600; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.strip span.p { background: var(--accent-fill); color: var(--on-accent); }
+.strip span.n { background: var(--fill); color: var(--label); text-decoration: line-through; }
+.strip span.c { box-shadow: inset 0 0 0 2px var(--accent); color: var(--label); }
+.strip.s9 { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+.strip.s9 span { min-height: 42px; padding: 3px 0; line-height: 1.15; text-align: center; }
+.strip.s9 span small { display: block; font-size: .647rem; font-weight: 500; }
+.stage > .slots { flex: none; }
+.co-slots { flex: none; display: flex; gap: 8px; }
+.co-slots .slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.co-slots .slot { min-height: 42px; font-size: 1rem; }
+.bars { flex: none; display: flex; align-items: flex-end; gap: 3px; height: 96px; padding: 10px 12px 0; background: var(--cell); border-radius: 18px; }
+.bars span { flex: 1; max-width: 22px; background: var(--fill); border-radius: 4px 4px 0 0; min-height: 2px; }
+.bars span.last { background: var(--accent); }
+
+/* ---------- Summary & statistics ---------- */
+.hero { display: flex; flex-direction: column; gap: 6px; }
+.hero .score { font-family: var(--font-num); font-weight: 700; font-size: 3.5rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.badge { align-self: flex-start; padding: 5px 12px; border-radius: 14px; background: var(--accent-fill); color: var(--on-accent); font-weight: 600; font-size: .765rem; }
+.tbl { background: var(--cell); border-radius: var(--r-group); overflow-x: auto; }
+.st { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.st th, .st td { padding: 11px 12px; text-align: right; white-space: nowrap; }
+.st th:first-child, .st td:first-child { padding-left: 16px; }
+.st .sub-v { display: block; font-size: .765rem; color: var(--label-2); font-weight: 400; }
+.st tbody td { border-top: .5px solid var(--sep); }
+.st:not(:has(thead)) tbody tr:first-child td { border-top: 0; }
+.st th:first-child, .st td:first-child { text-align: left; white-space: normal; }
+.st thead th { font-weight: 600; font-size: .882rem; }
+.st td:first-child { color: var(--label-2); }
+.st td.win { font-weight: 700; }
+.st td.win::after { content: " ●"; color: var(--accent); font-size: .6em; vertical-align: middle; }
+.actions { display: flex; flex-direction: column; gap: 10px; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tile { background: var(--cell); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tile span { font-size: .765rem; color: var(--label-2); }
+.tile b { font-family: var(--font-num); font-size: 1.647rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chart-card { background: var(--cell); border-radius: var(--r-group); padding: 14px 10px 8px; position: relative; }
+.chart { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.chart .grid { stroke: var(--sep); stroke-width: 1; }
+.chart .axis { fill: var(--label-2); font: 500 10px var(--font); }
+.chart .ln { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .ar { fill: var(--accent); opacity: .1; }
+.chart .dot { fill: var(--accent); stroke: var(--cell); stroke-width: 2; }
+.chart .lab { fill: var(--label); font: 600 12px var(--font); }
+.chart .xh { stroke: var(--label-2); stroke-width: 1; }
+.tip { position: absolute; top: 4px; pointer-events: none; padding: 6px 10px; border-radius: 12px; font-size: .706rem; color: var(--label-2); white-space: nowrap; transform: translateX(-50%); }
+.tip b { display: block; font-size: .882rem; color: var(--label); }
+.empty { padding: 20px 18px; border-radius: var(--r-group); background: var(--cell); color: var(--label-2); }
+
+/* ---------- Sheets & banner (function layer) ---------- */
+.sheet-wrap { position: absolute; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+.scrim { position: absolute; inset: 0; background: var(--scrim); animation: fade .25s ease-out; }
+.sheet {
+  position: relative;
+  width: calc(100% - 16px);
+  max-width: 440px;
+  margin-bottom: 8px;
+  padding: 10px 14px 14px;
+  border-radius: 38px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: sheet-in .5s var(--spring);
+}
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--label-3); margin: 0 auto 4px; }
+.sheet h2 { font-size: 1.294rem; text-align: center; padding: 0 12px; }
+.sheet p { text-align: center; color: var(--label-2); padding: 0 12px; }
+.sheet .btn { width: 100%; border-radius: 24px; min-height: 50px; }
+.sheet textarea.code { width: 100%; height: 110px; resize: none; padding: 10px 12px; border: 0; border-radius: 16px; background: var(--fill-3); color: var(--label); font: 13px/1.35 ui-monospace, "SF Mono", Menlo, monospace; word-break: break-all; }
+.sheet textarea.code:focus { outline: 2px solid var(--accent); }
+.sheet-acts { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.sheet-acts.row { flex-direction: row; }
+.sheet-acts.row .btn { flex: 1; }
+@keyframes sheet-in { from { transform: translateY(110%); } }
+@keyframes fade { from { opacity: 0; } }
+.banner {
+  position: fixed;
+  z-index: 40;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  max-width: calc(100% - 32px);
+  min-height: 44px;
+  padding: 10px 18px 10px 14px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: .882rem;
+  color: var(--label);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: banner-in .5s var(--spring);
+}
+.banner svg.i { width: 20px; height: 20px; }
+.banner.good svg.i { color: var(--accent); }
+.banner.bad svg.i { color: var(--red); }
+@keyframes banner-in { from { transform: translate(-50%, -16px) scale(.92); opacity: 0; } }
+
+/* Navigation transitions (View Transitions API): push/pop slide, full-screen covers rise from the bottom */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .42s; animation-timing-function: var(--spring); }
+html[data-nav="push"]::view-transition-old(root) { animation-name: vt-out-left; }
+html[data-nav="push"]::view-transition-new(root) { animation-name: vt-in-right; }
+html[data-nav="pop"]::view-transition-old(root) { animation-name: vt-out-right; z-index: 2; }
+html[data-nav="pop"]::view-transition-new(root) { animation-name: vt-in-left; }
+html[data-nav="up"]::view-transition-new(root) { animation-name: vt-in-up; }
+html[data-nav="up"]::view-transition-old(root) { animation-name: vt-hold; }
+html[data-nav="down"]::view-transition-old(root) { animation-name: vt-out-down; z-index: 2; }
+html[data-nav="down"]::view-transition-new(root) { animation-name: vt-hold; }
+@keyframes vt-in-right { from { transform: translateX(100%); } }
+@keyframes vt-out-left { to { transform: translateX(-30%); opacity: .6; } }
+@keyframes vt-in-left { from { transform: translateX(-30%); opacity: .6; } }
+@keyframes vt-out-right { to { transform: translateX(100%); } }
+@keyframes vt-in-up { from { transform: translateY(100%); } }
+@keyframes vt-out-down { to { transform: translateY(100%); } }
+@keyframes vt-hold { from { opacity: 1; } to { opacity: 1; } }
+
+@media (max-height: 700px) {
+  .key { min-height: 46px; }
+  .k5 .key { min-height: 40px; }
+  .bigbtn { min-height: 62px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  ::view-transition-old(root) { animation-name: fade-out-x !important; animation-duration: .25s !important; animation-timing-function: ease !important; }
+  ::view-transition-new(root) { animation-name: fade-x !important; animation-duration: .25s !important; animation-timing-function: ease !important; }
+}
+@keyframes fade-x { from { opacity: 0; } }
+@keyframes fade-out-x { to { opacity: 0; } }
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ===== Board geometry (mm, regulation steel-tip board) =====
+const ORDER = [20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
+const R = { bullIn: 6.35, bullOut: 15.9, trebIn: 99, trebOut: 107, dblIn: 162, dblOut: 170 };
+
+function dart(n, m) { // n: 1..20 | 25 | 0 (miss), m: 1..3
+  if (n === 0) return { n: 0, m: 0, v: 0 };
+  return { n, m, v: n * m };
+}
+function dartLabel(d) {
+  if (!d || d.n === 0) return '0';
+  if (d.n === 25) return d.m === 2 ? 'Bull' : '25';
+  return (d.m === 3 ? 'T' : d.m === 2 ? 'D' : 'S') + d.n;
+}
+function hitAt(x, y) { // y up
+  const r = Math.hypot(x, y);
+  if (r <= R.bullIn) return dart(25, 2);
+  if (r <= R.bullOut) return dart(25, 1);
+  if (r > R.dblOut) return dart(0, 0);
+  const deg = Math.atan2(y, x) * 180 / Math.PI;
+  const theta = ((90 - deg + 9) % 360 + 360) % 360;
+  const n = ORDER[Math.floor(theta / 18) % 20];
+  const m = (r >= R.trebIn && r <= R.trebOut) ? 3 : (r >= R.dblIn) ? 2 : 1;
+  return dart(n, m);
+}
+function aimPoint(d) {
+  if (d.n === 25 || d.n === 0) return { x: 0, y: 0 };
+  const idx = ORDER.indexOf(d.n);
+  const a = (90 - idx * 18) * Math.PI / 180;
+  const r = d.m === 3 ? 103 : d.m === 2 ? 166 : 134;
+  return { x: r * Math.cos(a), y: r * Math.sin(a) };
+}
+function gauss() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function throwAt(target, sigma) {
+  const p = aimPoint(target);
+  const x = p.x + gauss() * sigma, y = p.y + gauss() * sigma;
+  return { x, y, hit: hitAt(x, y) };
+}
+
+// ===== Checkout routes =====
+const ALL_DARTS = (() => {
+  const a = [];
+  for (let n = 1; n <= 20; n++) for (let m = 1; m <= 3; m++) a.push(dart(n, m));
+  a.push(dart(25, 1), dart(25, 2));
+  return a;
+})();
+const DOUBLE_PREF = { 16: 0, 20: .05, 8: .2, 10: .25, 12: .3, 18: .4, 4: .45, 14: .5, 6: .55, 2: .6, 19: .6, 17: .65, 9: .7, 13: .7, 15: .7, 11: .75, 7: .8, 5: .8, 3: .9, 1: 1.5 };
+function setupCost(d) {
+  if (d.n === 25) return d.m === 2 ? 1.2 : .9;
+  if (d.m === 1) return .1 + (20 - d.n) * .002;
+  if (d.m === 3) return d.n === 20 ? 0 : d.n === 19 ? .05 : d.n >= 17 ? .15 : d.n >= 15 ? .25 : d.n >= 10 ? .35 : .5;
+  return .9; // doubles as setup darts
+}
+function finishCost(d, out) {
+  if (d.n === 25 && d.m === 2) return 1.2;
+  if (d.m === 2) return DOUBLE_PREF[d.n];
+  if (out === 'single') return d.m === 1 ? .1 : d.m === 3 ? .4 : .6; // single out
+  return .6 + setupCost(d); // master out treble
+}
+function isFinishDart(d, out) {
+  if (out === 'single') return true;
+  if (out === 'master') return d.m >= 2;
+  return d.m === 2;
+}
+const routeMemo = new Map();
+function bestRoute(r, dartsLeft, out = 'double') {
+  if (r <= 0 || r > 180 || dartsLeft <= 0) return null;
+  const key = r + '|' + dartsLeft + '|' + out;
+  if (routeMemo.has(key)) return routeMemo.get(key);
+  let best = null, bestCost = Infinity;
+  const fins = ALL_DARTS.filter(d => isFinishDart(d, out));
+  for (const f of fins) {
+    const rest = r - f.v;
+    if (rest < 0) continue;
+    if (rest === 0) { const c = 1 + finishCost(f, out); if (c < bestCost) { bestCost = c; best = [f]; } continue; }
+    if (dartsLeft >= 2) for (const a of ALL_DARTS) {
+      const rest2 = rest - a.v;
+      if (rest2 < 0) continue;
+      if (rest2 === 0) { const c = 2 + finishCost(f, out) + setupCost(a); if (c < bestCost) { bestCost = c; best = [a, f]; } continue; }
+      if (dartsLeft >= 3) for (const b of ALL_DARTS) {
+        if (b.v !== rest2) continue;
+        const c = 3 + finishCost(f, out) + setupCost(a) + setupCost(b);
+        if (c < bestCost) { bestCost = c; best = a.v >= b.v ? [a, b, f] : [b, a, f]; }
+      }
+    }
+  }
+  const res = best ? { darts: best, cost: bestCost } : null;
+  routeMemo.set(key, res);
+  return res;
+}
+function minDartsToFinish(r, out = 'double') {
+  for (let d = 1; d <= 3; d++) if (bestRoute(r, d, out)) return d;
+  return 0;
+}
+// Is a 3-dart visit total possible at all?
+const POSSIBLE_TOTALS = (() => {
+  const s = new Set([0]);
+  const vals = [0, ...new Set(ALL_DARTS.map(d => d.v))];
+  for (const a of vals) for (const b of vals) for (const c of vals) s.add(a + b + c);
+  return s;
+})();
+
+// ===== Bot =====
+// Throw spread (mm) per target 3-dart average, calibrated by simulating 501 double-out legs.
+const BOT_SIGMA = { 20: 43.5, 25: 35.2, 30: 28.5, 35: 23.9, 40: 20.5, 45: 18.3, 50: 16.4, 55: 14.8, 60: 13.3, 65: 12.2, 70: 11.1, 75: 10.2, 80: 9.4, 85: 8.5, 90: 7.7, 95: 7.1, 100: 6.5, 105: 5.85, 110: 5.3 };
+const BOT_AVGS = Object.keys(BOT_SIGMA).map(Number);
+const OLD_LEVELS = { 1: 20, 2: 30, 3: 35, 4: 45, 5: 55, 6: 65, 7: 75, 8: 90, 9: 100 };
+function botAvg(v) { v = +v; if (v < 20) v = OLD_LEVELS[v] || 45; return Math.min(110, Math.max(20, Math.round(v / 5) * 5)); }
+function botSigma(v) { return BOT_SIGMA[botAvg(v)]; }
+function botTitle(v) {
+  const a = botAvg(v);
+  return a >= 110 ? 'Weltspitze' : a >= 100 ? 'Weltklasse' : a >= 90 ? 'Profi' : a >= 80 ? 'Oberliga' : a >= 70 ? 'Ligaspieler'
+    : a >= 60 ? 'Vereinsspieler' : a >= 50 ? 'Hobbyspieler' : a >= 40 ? 'Kneipenspieler' : a >= 30 ? 'Gelegenheitsspieler' : 'Einsteiger';
+}
+function leaveScore(L, dl, out) {
+  const now = dl > 0 && bestRoute(L, dl, out);
+  if (now) return 5 - now.cost;
+  const rt = bestRoute(L, 3, out);
+  if (rt) return -rt.cost;
+  return -10 - L / 60;
+}
+function botTarget(r, dartsLeft, out = 'double') {
+  const rt = bestRoute(r, dartsLeft, out);
+  if (rt) return rt.darts[0];
+  const minLeave = out === 'single' ? 1 : 2;
+  const good = L => L >= minLeave && (L > 170 || bestRoute(L, 3, out));
+  if (r > 100) {
+    for (const n of [20, 19, 18, 17]) if (good(r - 3 * n)) return dart(n, 3);
+    return dart(20, 3);
+  }
+  let best = dart(20, 1), bestS = -Infinity;
+  for (const d of ALL_DARTS) {
+    const L = r - d.v;
+    if (L < minLeave) continue;
+    const s = leaveScore(L, dartsLeft - 1, out) - setupCost(d) * 0.5;
+    if (s > bestS) { bestS = s; best = d; }
+  }
+  return best;
+}
+// Apply one dart to a remaining score under X01 rules. Returns {rem, bust, done}
+function applyDart(rem, d, out = 'double') {
+  const L = rem - d.v;
+  if (L < 0) return { rem, bust: true, done: false };
+  if (L === 0) {
+    if (isFinishDart(d, out)) return { rem: 0, bust: false, done: true };
+    return { rem, bust: true, done: false };
+  }
+  if (L === 1 && out !== 'single') return { rem, bust: true, done: false };
+  return { rem: L, bust: false, done: false };
+}
+function botVisitX01(rem, sigma, out = 'double') {
+  const throws = [];
+  let r = rem;
+  for (let i = 0; i < 3; i++) {
+    const t = botTarget(r, 3 - i, out);
+    const th = throwAt(t, sigma);
+    th.target = t;
+    throws.push(th);
+    const res = applyDart(r, th.hit, out);
+    if (res.bust) return { throws, bust: true, total: 0, done: false };
+    r = res.rem;
+    if (res.done) return { throws, bust: false, total: rem, done: true };
+  }
+  return { throws, bust: false, total: rem - r, done: false };
+}
+// Cricket target choice: marks[me][num], marks[opp], points
+const CRICKET_NUMS = [20, 19, 18, 17, 16, 15, 25];
+function botCricketTarget(myMarks, oppMarksList, myPts, oppPtsMax) {
+  const closedByAllOpp = n => oppMarksList.every(o => (o[n] || 0) >= 3);
+  const scoring = CRICKET_NUMS.filter(n => (myMarks[n] || 0) >= 3 && !closedByAllOpp(n));
+  const open = CRICKET_NUMS.filter(n => (myMarks[n] || 0) < 3);
+  // behind (or level) and can score: score on the highest available number
+  if (scoring.length && myPts <= oppPtsMax && (open.length === 0 || myPts < oppPtsMax)) return scoring[0] === 25 ? dart(25, 2) : dart(scoring[0], 3);
+  // otherwise close: prefer numbers the opponent has already opened (defend), then highest
+  const defend = open.filter(n => oppMarksList.some(o => (o[n] || 0) >= 3));
+  const n = (defend[0] ?? open[0]) ?? scoring[0] ?? 20;
+  return n === 25 ? dart(25, 2) : dart(n, 3);
+}
+
+if (typeof module !== 'undefined') module.exports = { ORDER, R, dart, dartLabel, hitAt, aimPoint, throwAt, bestRoute, minDartsToFinish, POSSIBLE_TOTALS, BOT_SIGMA, BOT_AVGS, botAvg, botSigma, botTitle, botTarget, botVisitX01, applyDart, botCricketTarget, CRICKET_NUMS, ALL_DARTS };
+
+'use strict';
+// ================= helpers =================
+const $app = document.getElementById('app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const f1 = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
+const avg3 = (pts, darts) => darts ? f1(pts / darts * 3) : '–';
+const pct = (a, b) => b ? Math.round(a / b * 100) + ' %' : '–';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clone = o => JSON.parse(JSON.stringify(o));
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const reduceMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const botLabel = v => `Bot Ø ${botAvg(v)}`;
+const pName = p => p.bot ? botLabel(p.bot) : ((p.name || '').trim() || 'Spieler');
+const outLabel = o => ({ double: 'Double Out', single: 'Single Out', master: 'Master Out' }[o] || 'Double Out');
+const dateDE = t => new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+if (!('switch' in document.createElement('input'))) document.documentElement.classList.add('noswitch');
+
+// SF Symbols-style glyphs (drawn inline, stroke follows the text weight)
+const IC = {
+  back: '<path d="M15 5l-7 7 7 7"/>',
+  close: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/>',
+  chev: '<path d="M9 5l7 7-7 7"/>',
+  updown: '<path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  minus: '<path d="M5 12h14"/>',
+  up: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+  minusCircle: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
+  del: '<path d="M9 5h11v14H9l-6-7z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/>',
+  cricket: '<circle cx="12" cy="12" r="9"/><path d="M8 8l8 8M16 8l-8 8"/>',
+  dumbbell: '<path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>',
+  chart: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V7M17 16v-8"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  rings: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="6"/>',
+  stack: '<rect x="4" y="4" width="16" height="4" rx="1.5"/><rect x="4" y="10" width="16" height="4" rx="1.5"/><rect x="4" y="16" width="16" height="4" rx="1.5"/>',
+  divide: '<path d="M5 12h14"/><circle cx="12" cy="6.5" r="1.2"/><circle cx="12" cy="17.5" r="1.2"/>',
+  stairs: '<path d="M4 19h5v-5h5V9h6"/><path d="M15 4h5v5"/>',
+  flag: '<path d="M5 21V4"/><path d="M5 4h12l-2 4 2 4H5"/>',
+  gauge: '<path d="M4.5 17a8 8 0 1115 0"/><path d="M12 15l4-5"/>',
+  personAdd: '<circle cx="10" cy="8" r="3.5"/><path d="M3.5 19.5a6.5 6.5 0 0113 0"/><path d="M19 8v6M16 11h6"/>',
+  cpu: '<rect x="6" y="6" width="12" height="12" rx="2.5"/><path d="M10 10h4v4h-4zM9.5 3v3M14.5 3v3M9.5 18v3M14.5 18v3M3 9.5h3M3 14.5h3M18 9.5h3M18 14.5h3"/>',
+  check: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/>',
+  warn: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>',
+};
+const svg = k => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
+
+// ================= storage =================
+const KEY = 'oche.v1';
+const DEFAULTS = {
+  settings: {
+    inputMode: 'sum',
+    x01: { start: 501, out: 'double', format: 'legs', legs: 2, sets: 3, setLegs: 3 },
+    cricket: { format: 'legs', legs: 1, sets: 2, setLegs: 3 },
+    players: [{ name: 'Spieler 1' }, { bot: 45 }],
+    atw: { target: 'any', bull: true, skip: false },
+    bobs: {},
+    shanghai: { rounds: 7 },
+    halve: {},
+    c121: { count: 10 },
+    checkout: { range: '41-80', darts: 3, count: 10 },
+    scoring: { visits: 20 },
+  },
+  current: null,
+  history: [],
+};
+let DB = clone(DEFAULTS);
+function load() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { d = null; }
+  if (!d || typeof d !== 'object') return;
+  DB = Object.assign(clone(DEFAULTS), d);
+  DB.settings = mergeSettings(d.settings);
+  if (!Array.isArray(DB.history)) DB.history = [];
+}
+function mergeSettings(src = {}) {
+  const S = clone(DEFAULTS.settings);
+  for (const k of Object.keys(src || {})) S[k] = S[k] && typeof S[k] === 'object' && !Array.isArray(S[k]) ? Object.assign(S[k], src[k]) : src[k];
+  S.players = (Array.isArray(S.players) && S.players.length ? S.players : clone(DEFAULTS.settings.players)).map(p => p.bot ? { bot: botAvg(p.bot) } : { name: p.name || '' });
+  return S;
+}
+// Transfer code: a copyable text that carries statistics and settings to another copy of the app.
+function b64e(str) { const b = new TextEncoder().encode(str); let bin = ''; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(bin); }
+function b64d(s) { const bin = atob(s); const b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return new TextDecoder().decode(b); }
+const exportCode = () => 'OCHE1.' + b64e(JSON.stringify({ settings: DB.settings, history: DB.history }));
+function importCode(text) {
+  const raw = String(text || '').replace(/\s+/g, '');
+  if (!raw.startsWith('OCHE1.')) throw new Error('format');
+  const d = JSON.parse(b64d(raw.slice(6)));
+  if (!d || !Array.isArray(d.history)) throw new Error('format');
+  const have = new Set(DB.history.map(h => h.id));
+  const add = d.history.filter(h => h && h.id && h.kind && !have.has(h.id));
+  DB.history = DB.history.concat(add).sort((a, b) => b.date - a.date).slice(0, 500);
+  if (d.settings) DB.settings = mergeSettings(d.settings);
+  save();
+  return add.length;
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { /* storage unavailable */ } }
+function setCfg(path, v) {
+  const [a, b] = path.split('.');
+  DB.settings[a][b] = v === 'true' || v === true ? true : v === 'false' || v === false ? false : /^\d+$/.test(String(v)) ? +v : v;
+}
+
+// ================= ui state, banner, haptics =================
+const UI = { view: 'tabs', tab: 'play', setup: null, mod: 1, entry: '', sheet: null, bot: null, statsPlayer: null, compact: false, scroll: {} };
+const $banner = document.createElement('div');
+$banner.setAttribute('role', 'status');
+$banner.hidden = true;
+document.body.appendChild($banner);
+let bannerT = null;
+function banner(text, kind = '', ms = 1800) {
+  clearTimeout(bannerT);
+  $banner.hidden = true;
+  $banner.className = 'banner glass ' + kind;
+  $banner.innerHTML = (kind === 'good' ? svg('check') : kind === 'bad' ? svg('warn') : '') + `<span>${esc(text)}</span>`;
+  void $banner.offsetWidth;
+  $banner.hidden = false;
+  bannerT = setTimeout(() => { $banner.hidden = true; }, ms);
+}
+// Light haptic tap. iOS Safari has no vibrate(), but toggling a native switch gives a system tick.
+let hapticEl = null;
+function haptic() {
+  try {
+    if (navigator.vibrate) { navigator.vibrate(12); return; }
+    if (!hapticEl) {
+      hapticEl = document.createElement('label');
+      hapticEl.setAttribute('aria-hidden', 'true');
+      hapticEl.style.cssText = 'position:fixed;left:-200px;top:0;width:1px;height:1px;overflow:hidden;opacity:0';
+      const i = document.createElement('input');
+      i.type = 'checkbox'; i.setAttribute('switch', ''); i.tabIndex = -1;
+      hapticEl.appendChild(i);
+      document.body.appendChild(hapticEl);
+    }
+    hapticEl.click();
+  } catch (e) { /* no haptics available */ }
+}
+
+// ================= dartboard svg =================
+const PT = (r, a) => { const t = a * Math.PI / 180; return [+(r * Math.sin(t)).toFixed(2), +(-r * Math.cos(t)).toFixed(2)]; };
+function sector(r1, r2, a1, a2) {
+  const [x1, y1] = PT(r2, a1), [x2, y2] = PT(r2, a2), [x3, y3] = PT(r1, a2), [x4, y4] = PT(r1, a1);
+  return `M${x1} ${y1}A${r2} ${r2} 0 0 1 ${x2} ${y2}L${x3} ${y3}A${r1} ${r1} 0 0 0 ${x4} ${y4}Z`;
+}
+let BOARD_BASE = '';
+function boardBase() {
+  if (BOARD_BASE) return BOARD_BASE;
+  let s = '<circle r="199" class="rim"/>';
+  ORDER.forEach((n, i) => {
+    const a1 = i * 18 - 9, a2 = i * 18 + 9, dark = i % 2 === 0;
+    const single = dark ? 'bk' : 'cr', ring = dark ? 'rd' : 'gn';
+    s += `<path class="${single}" d="${sector(R.trebOut, R.dblIn, a1, a2)}"/><path class="${single}" d="${sector(R.bullOut, R.trebIn, a1, a2)}"/>`;
+    s += `<path class="${ring}" d="${sector(R.dblIn, R.dblOut, a1, a2)}"/><path class="${ring}" d="${sector(R.trebIn, R.trebOut, a1, a2)}"/>`;
+  });
+  s += `<circle r="${R.bullOut}" class="gn"/><circle r="${R.bullIn}" class="rd"/>`;
+  let w = '';
+  for (const r of [R.bullIn, R.bullOut, R.trebIn, R.trebOut, R.dblIn, R.dblOut]) w += `<circle r="${r}"/>`;
+  for (let i = 0; i < 20; i++) { const [x1, y1] = PT(R.bullOut, i * 18 - 9), [x2, y2] = PT(R.dblOut, i * 18 - 9); w += `<path d="M${x1} ${y1}L${x2} ${y2}"/>`; }
+  BOARD_BASE = s + `<g class="wire">${w}</g>`;
+  return BOARD_BASE;
+}
+function hlSVG(hl) {
+  if (!hl) return '';
+  let s = '';
+  for (const n of hl.done || []) {
+    if (n === 25) { s += `<circle class="hl-done" r="${R.bullOut}"/>`; continue; }
+    const i = ORDER.indexOf(n);
+    s += `<path class="hl-done" d="${sector(R.bullOut, R.dblOut, i * 18 - 9, i * 18 + 9)}"/>`;
+  }
+  if (hl.all) { const [r1, r2] = hl.all === 'double' ? [R.dblIn, R.dblOut] : [R.trebIn, R.trebOut]; s += `<circle class="hl-ring" r="${(r1 + r2) / 2}" stroke-width="${r2 - r1}"/>`; }
+  const t = hl.target;
+  if (t === 25) s += `<circle class="hl-t" r="${hl.ring === 'double' || hl.ring === 'treble' ? R.bullIn + 2 : R.bullOut}"/>`;
+  else if (t) {
+    const i = ORDER.indexOf(t), a1 = i * 18 - 9, a2 = i * 18 + 9;
+    const [r1, r2] = hl.ring === 'double' ? [R.dblIn, R.dblOut] : hl.ring === 'treble' ? [R.trebIn, R.trebOut] : [R.bullOut, R.dblOut];
+    s += `<path class="hl-t" d="${sector(r1, r2, a1, a2)}"/>`;
+  }
+  return s;
+}
+function boardSVG({ markers = [], hl = null, label = 'Dartscheibe' } = {}) {
+  const nums = ORDER.map((n, i) => { const [x, y] = PT(185, i * 18); return `<text class="bn${hl && hl.target === n ? ' on' : ''}" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${n}</text>`; }).join('');
+  const mk = markers.map((m, i) => {
+    const x = m.x.toFixed(1), y = (-m.y).toFixed(1);
+    return `<g class="mk"><circle class="mk-r" cx="${x}" cy="${y}" r="9"/><circle class="mk-d" cx="${x}" cy="${y}" r="6.5"/><text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${i + 1}</text></g>`;
+  }).join('');
+  return `<svg class="dboard" viewBox="-200 -200 400 400" role="img" aria-label="${esc(label)}">${boardBase()}${hlSVG(hl)}${nums}${mk}</svg>`;
+}
+
+// ================= match format (legs / sets) =================
+function newMatch(n) { return { n, set: 0, legInSet: 0, leg: 0, turn: 0, wins: Array(n).fill(0), setWins: Array(n).fill(0), legsTotal: Array(n).fill(0), done: false, winner: -1 }; }
+// Leg won by p: returns 'leg', 'set' or 'match'. The throw alternates each leg; each set starts with the next player.
+function advanceMatch(st, p, cfg) {
+  st.legsTotal[p]++; st.wins[p]++; st.leg++;
+  if (st.wins[p] >= cfg.legs) {
+    if (!cfg.sets) { st.done = true; st.winner = p; st.turn = p; return 'match'; }
+    st.setWins[p]++;
+    if (st.setWins[p] >= cfg.sets) { st.done = true; st.winner = p; st.turn = p; return 'match'; }
+    st.set++; st.legInSet = 0; st.wins.fill(0);
+    st.turn = st.set % st.n;
+    return 'set';
+  }
+  st.legInSet++;
+  st.turn = (st.set + st.legInSet) % st.n;
+  return 'leg';
+}
+function formatLabel(cfg) {
+  return cfg.sets ? `First to ${plural(cfg.sets, 'Set', 'Sets')}, je ${plural(cfg.legs, 'Leg', 'Legs')}` : `First to ${plural(cfg.legs, 'Leg', 'Legs')}`;
+}
+function matchCfgFrom(F) { return F.format === 'sets' ? { sets: F.sets, legs: F.setLegs } : { sets: 0, legs: F.legs }; }
+
+// ================= X01 =================
+function x01State(s) {
+  const n = s.players.length, start = s.cfg.start;
+  const mk = () => ({ pts: 0, darts: 0, f9p: 0, f9d: 0, t180: 0, t140: 0, t100: 0, hi: 0, best: 0, dA: 0, dH: 0 });
+  const st = Object.assign(newMatch(n), { rem: Array(n).fill(start), lv: Array(n).fill(0), ld: Array(n).fill(0), log: s.players.map(() => []), stats: s.players.map(mk) });
+  for (const v of s.visits) {
+    if (st.done) break;
+    const p = v.p, S = st.stats[p], sc = v.bust ? 0 : v.total;
+    S.darts += v.darts; S.pts += sc; st.ld[p] += v.darts;
+    if (st.lv[p] < 3) { S.f9p += sc; S.f9d += v.darts; }
+    st.lv[p]++;
+    if (sc === 180) S.t180++; else if (sc >= 140) S.t140++; else if (sc >= 100) S.t100++;
+    if (v.dbl) { S.dA += v.dbl[0]; S.dH += v.dbl[1]; }
+    st.rem[p] -= sc;
+    st.log[p].push({ t: sc, b: v.bust, r: st.rem[p] });
+    if (st.rem[p] === 0) {
+      S.hi = Math.max(S.hi, sc);
+      S.best = S.best ? Math.min(S.best, st.ld[p]) : st.ld[p];
+      if (advanceMatch(st, p, s.cfg) === 'match') break;
+      st.rem.fill(start); st.lv.fill(0); st.ld.fill(0); st.log = s.players.map(() => []);
+      continue;
+    }
+    st.turn = (p + 1) % n;
+  }
+  return st;
+}
+function evalDarts(rem, list, out) {
+  let r = rem, dA = 0, dH = 0;
+  for (const [n, m] of list) {
+    const d = dart(n, m);
+    if (bestRoute(r, 1, out)) dA++;
+    const a = applyDart(r, d, out);
+    if (a.bust) return { rem, bust: true, done: false, dA, dH };
+    r = a.rem;
+    if (a.done) { dH++; return { rem: 0, bust: false, done: true, dA, dH }; }
+  }
+  return { rem: r, bust: false, done: false, dA, dH };
+}
+function commitVisit(v) {
+  const s = DB.current, stateOf = s.kind === 'x01' ? x01State : cricketState;
+  const before = stateOf(s);
+  s.visits.push(v);
+  s.pending = [];
+  UI.entry = ''; UI.mod = 1;
+  const st = stateOf(s);
+  if (st.done) { haptic(); finishSession(); return; }
+  const who = pName(s.players[v.p]);
+  const sets = (a) => a.setWins.reduce((x, y) => x + y, 0);
+  if (sets(st) > sets(before)) { banner(`Set an ${who}`, 'good', 2400); haptic(); }
+  else if (st.leg > before.leg) { banner(s.kind === 'x01' ? `Leg an ${who} · Finish ${v.total}` : `Leg an ${who}`, 'good', 2200); haptic(); }
+  else if (v.bust) { banner('Überworfen', 'bad', 1300); haptic(); }
+  else if (v.total === 180) banner('180!', 'good', 1800);
+  save(); render(); maybeBot();
+}
+function x01SubmitTotal(t) {
+  const s = DB.current, st = x01State(s), p = st.turn, rem = st.rem[p], out = s.cfg.out;
+  if (!POSSIBLE_TOTALS.has(t)) { UI.entry = ''; banner(`${t} ist mit drei Darts nicht möglich. Bitte prüfe die Eingabe.`, 'bad', 2400); render(); return; }
+  let bust = t > rem || (out !== 'single' && rem - t === 1);
+  if (!bust && t === rem) {
+    const md = minDartsToFinish(rem, out);
+    if (!md) bust = true;
+    else if (md < 3) { UI.entry = ''; UI.sheet = { kind: 'co', p, total: t, min: md }; render(); return; }
+    else { commitVisit({ p, total: t, darts: 3, bust: false }); return; }
+  }
+  commitVisit({ p, total: bust ? 0 : t, darts: 3, bust });
+}
+function x01Dart(n, m) {
+  const s = DB.current, st = x01State(s), p = st.turn, out = s.cfg.out;
+  s.pending.push([n, m]);
+  UI.mod = 1;
+  const ev = evalDarts(st.rem[p], s.pending, out);
+  if (ev.bust || ev.done || s.pending.length === 3) {
+    const list = s.pending.slice();
+    commitVisit({ p, total: ev.bust ? 0 : st.rem[p] - ev.rem, darts: list.length, bust: ev.bust, list, dbl: [ev.dA, ev.dH] });
+  } else { save(); render(); }
+}
+
+// ================= Cricket =================
+const CK_LABEL = n => n === 25 ? 'Bull' : String(n);
+function ckEmpty(n) { return Array.from({ length: n }, () => ({ 20: 0, 19: 0, 18: 0, 17: 0, 16: 0, 15: 0, 25: 0 })); }
+function ckWon(marks, pts, p) { return CRICKET_NUMS.every(x => marks[p][x] >= 3) && pts.every((v, i) => i === p || pts[p] >= v); }
+function ckApply(marks, pts, p, list) {
+  let used = 0, mk = 0, won = false;
+  for (const [n, m] of list) {
+    used++;
+    if (CRICKET_NUMS.includes(n) && m > 0) {
+      const cur = marks[p][n], close = Math.min(m, 3 - cur), extra = m - close;
+      marks[p][n] = cur + close; mk += close;
+      if (extra > 0 && marks.some((o, i) => i !== p && o[n] < 3)) { pts[p] += extra * n; mk += extra; }
+    }
+    if (ckWon(marks, pts, p)) { won = true; break; }
+  }
+  return { used, mk, won };
+}
+function cricketState(s) {
+  const n = s.players.length;
+  const st = Object.assign(newMatch(n), { marks: ckEmpty(n), pts: Array(n).fill(0), stats: s.players.map(() => ({ marks: 0, darts: 0 })) });
+  for (const v of s.visits) {
+    if (st.done) break;
+    const r = ckApply(st.marks, st.pts, v.p, v.list);
+    st.stats[v.p].darts += r.used; st.stats[v.p].marks += r.mk;
+    if (r.won) {
+      if (advanceMatch(st, v.p, s.cfg) === 'match') break;
+      st.marks = ckEmpty(n); st.pts.fill(0);
+      continue;
+    }
+    st.turn = (v.p + 1) % n;
+  }
+  return st;
+}
+function cricketDart(n, m) {
+  const s = DB.current, st = cricketState(s), p = st.turn;
+  s.pending.push([n, m]);
+  UI.mod = 1;
+  const r = ckApply(clone(st.marks), st.pts.slice(), p, s.pending);
+  if (r.won || s.pending.length >= 3) commitVisit({ p, list: s.pending.slice() });
+  else { save(); render(); }
+}
+function botVisitCricket(st, p, sigma) {
+  const marks = clone(st.marks), pts = st.pts.slice(), throws = [];
+  for (let i = 0; i < 3; i++) {
+    const others = marks.filter((_, k) => k !== p);
+    const oppMax = Math.max(0, ...pts.filter((_, k) => k !== p));
+    const th = throwAt(botCricketTarget(marks[p], others, pts[p], oppMax), sigma);
+    throws.push(th);
+    if (ckApply(marks, pts, p, [[th.hit.n, th.hit.m]]).won) break;
+  }
+  return throws;
+}
+
+// ================= Bot runner =================
+let botTimer = null, botTok = 0, botStep = null;
+function cancelBot() { botTok++; clearTimeout(botTimer); UI.bot = null; botStep = null; }
+function maybeBot() {
+  const s = DB.current;
+  if (!s || UI.view !== 'play' || UI.bot || UI.sheet || s.finished) return;
+  if (s.kind !== 'x01' && s.kind !== 'cricket') return;
+  const st = s.kind === 'x01' ? x01State(s) : cricketState(s);
+  if (st.done) return;
+  const P = s.players[st.turn];
+  if (!P.bot) return;
+  const p = st.turn, sigma = botSigma(P.bot);
+  let throws, visit;
+  if (s.kind === 'x01') {
+    const rem = st.rem[p], vis = botVisitX01(rem, sigma, s.cfg.out);
+    throws = vis.throws;
+    const list = throws.map(t => [t.hit.n, t.hit.m]);
+    const ev = evalDarts(rem, list, s.cfg.out);
+    visit = { p, total: ev.bust ? 0 : rem - ev.rem, darts: list.length, bust: ev.bust, list, dbl: [ev.dA, ev.dH] };
+  } else {
+    throws = botVisitCricket(st, p, sigma);
+    visit = { p, list: throws.map(t => [t.hit.n, t.hit.m]) };
+  }
+  UI.bot = { p, throws, shown: 0 };
+  const tok = ++botTok;
+  botStep = () => {
+    if (tok !== botTok) return;
+    if (UI.bot.shown < throws.length) {
+      UI.bot.shown++;
+      render();
+      botTimer = setTimeout(botStep, UI.bot.shown < throws.length ? 700 : 1100);
+    } else { UI.bot = null; botStep = null; commitVisit(visit); }
+  };
+  render();
+  botTimer = setTimeout(botStep, 650);
+}
+
+// ================= Training logic =================
+function atwSeq(cfg) { const a = []; for (let i = 1; i <= 20; i++) a.push(i); if (cfg.bull) a.push(25); return a; }
+function atwState(s) {
+  const seq = atwSeq(s.cfg);
+  let idx = 0, hits = 0;
+  for (const m of s.throws) {
+    if (idx >= seq.length) break;
+    if (m > 0) {
+      hits++;
+      const step = s.cfg.skip && s.cfg.target === 'any' && seq[idx] !== 25 ? m : 1;
+      let ni = idx + step;
+      if (s.cfg.bull && idx < seq.length - 1 && ni > seq.length - 1) ni = seq.length - 1;
+      idx = Math.min(ni, seq.length);
+    }
+  }
+  return { seq, idx, hits, darts: s.throws.length, done: idx >= seq.length };
+}
+const atwKey = c => `${c.target}${c.bull ? '+bull' : ''}${c.skip && c.target === 'any' ? '+sprung' : ''}`;
+const atwName = c => ({ any: 'Ganzes Segment', double: 'Nur Doppel', treble: 'Nur Triple' }[c.target]) + (c.skip && c.target === 'any' ? ', mit Sprung' : '') + (c.bull ? ', mit Bull' : '');
+const atwTarget = (n, t) => n === 25 ? (t === 'any' ? 'Bull' : 'D-Bull') : (t === 'double' ? 'D' : t === 'treble' ? 'T' : '') + n;
+
+const BOBS_SEQ = [...Array.from({ length: 20 }, (_, i) => i + 1), 25];
+function bobsState(s) {
+  let score = 27, i = 0;
+  const log = [];
+  for (const h of s.rounds) {
+    if (i >= BOBS_SEQ.length || score <= 0) break;
+    const val = BOBS_SEQ[i] === 25 ? 50 : BOBS_SEQ[i] * 2;
+    const d = h > 0 ? h * val : -val;
+    score += d; log.push(d); i++;
+  }
+  return { i, score, log, done: i >= BOBS_SEQ.length || score <= 0, dead: score <= 0 };
+}
+
+// Shanghai: round n targets number n; Single/Double/Triple of n in one round ends the game.
+function shState(s) {
+  let score = 0, i = 0, shanghai = false;
+  const log = [];
+  for (const r of s.rounds) {
+    const n = i + 1, pts = r.reduce((a, m) => a + m * n, 0);
+    score += pts; log.push(pts); i++;
+    if ([1, 2, 3].every(m => r.includes(m))) { shanghai = true; break; }
+  }
+  return { i, score, log, shanghai, done: shanghai || i >= s.cfg.rounds };
+}
+
+// Halve-It: miss a whole round and the score is halved.
+const HALVE_SEQ = [15, 16, 'D', 17, 18, 'T', 19, 20, 'B'];
+const hvLabel = t => t === 'D' ? 'Doppel' : t === 'T' ? 'Triple' : t === 'B' ? 'Bull' : String(t);
+function hvPoints(t, [n, m]) {
+  if (n <= 0) return 0;
+  if (t === 'D') return m === 2 ? n * 2 : 0;
+  if (t === 'T') return m === 3 ? n * 3 : 0;
+  if (t === 'B') return n === 25 ? 25 * m : 0;
+  return n === t ? n * m : 0;
+}
+function hvState(s) {
+  let score = 40, i = 0;
+  const log = [];
+  for (const r of s.rounds) {
+    const pts = r.reduce((a, d) => a + hvPoints(HALVE_SEQ[i], d), 0);
+    if (pts > 0) score += pts; else score = Math.floor(score / 2);
+    log.push(pts); i++;
+  }
+  return { i, score, log, done: i >= HALVE_SEQ.length };
+}
+
+// Checkout attempts (Checkout-Training and 121)
+const CO_RANGES = { '2-40': [2, 40], '41-80': [41, 80], '81-120': [81, 120], '121-170': [121, 170], '2-170': [2, 170] };
+function coNext(cfg, prev) {
+  const [a, b] = CO_RANGES[cfg.range];
+  for (let k = 0; k < 300; k++) {
+    const t = a + Math.floor(Math.random() * (b - a + 1));
+    if (t !== prev && bestRoute(t, 3, 'double')) return t;
+  }
+  return 40;
+}
+function c121State(s) {
+  let cur = 121, best = 0, ok = 0;
+  for (const a of s.attempts) { if (a.ok) { ok++; best = Math.max(best, a.t); cur = a.t + 1; } else cur = Math.max(121, a.t - 1); }
+  return { cur, best, ok };
+}
+const attemptOf = s => s.kind === 'c121' ? { t: c121State(s).cur, darts: 9 } : { t: s.cur, darts: s.cfg.darts };
+// pending entries: [n,m] darts, or [-1,-1] for darts forfeited after a bust
+function coEval(t, list) {
+  let r = t, vs = t;
+  for (let i = 0; i < list.length; i++) {
+    if (i % 3 === 0) vs = r;
+    const [n, m] = list[i];
+    if (n < 0) continue;
+    const a = applyDart(r, dart(n, m), 'double');
+    if (a.bust) { r = vs; continue; }
+    r = a.rem;
+    if (a.done) return { r: 0, done: true };
+  }
+  return { r, done: false };
+}
+function coDart(n, m) {
+  const s = DB.current, A = attemptOf(s);
+  const before = coEval(A.t, s.pending);
+  s.pending.push([n, m]);
+  UI.mod = 1;
+  const ev = coEval(A.t, s.pending);
+  if (!ev.done && applyDart(before.r, dart(n, m), 'double').bust) {
+    banner('Überworfen. Weiter mit der nächsten Aufnahme.', 'bad', 1500); haptic();
+    while (s.pending.length % 3 !== 0) s.pending.push([-1, -1]);
+  }
+  if (ev.done) coFinish(true);
+  else if (s.pending.length >= A.darts) coFinish(false);
+  else { save(); render(); }
+}
+function coFinish(ok) {
+  const s = DB.current, A = attemptOf(s);
+  const used = s.pending.filter(d => d[0] >= 0).length;
+  s.attempts.push({ t: A.t, list: s.pending.slice(), ok });
+  s.pending = [];
+  if (ok) { banner(`Gecheckt: ${A.t} mit ${plural(used, 'Dart', 'Darts')}`, 'good', 1800); haptic(); }
+  else { const rt = bestRoute(A.t, 3, 'double'); banner(`Nicht geschafft. Weg für ${A.t}: ${rt ? rt.darts.map(dartLabel).join(' ') : '–'}`, 'bad', 2600); }
+  if (s.attempts.length >= s.cfg.count) { finishSession(); return; }
+  if (s.kind === 'checkout') s.cur = coNext(s.cfg, A.t);
+  save(); render();
+}
+
+// ================= Session lifecycle =================
+const GAME_KINDS = ['x01', 'cricket'];
+const KIND_NAME = { x01: 'X01', cricket: 'Cricket', atw: 'Rund um die Uhr', bobs: "Bob's 27", shanghai: 'Shanghai', halve: 'Halve-It', c121: '121', checkout: 'Checkout-Training', scoring: 'Scoring' };
+function newSession(kind) {
+  const S = DB.settings;
+  const base = { id: uid(), kind, startedAt: Date.now() };
+  if (kind === 'x01') return { ...base, cfg: { start: S.x01.start, out: S.x01.out, ...matchCfgFrom(S.x01) }, players: clone(S.players), visits: [], pending: [] };
+  if (kind === 'cricket') return { ...base, cfg: matchCfgFrom(S.cricket), players: clone(S.players), visits: [], pending: [] };
+  if (kind === 'atw') return { ...base, cfg: clone(S.atw), throws: [] };
+  if (kind === 'bobs') return { ...base, cfg: {}, rounds: [] };
+  if (kind === 'shanghai') return { ...base, cfg: clone(S.shanghai), rounds: [], pending: [] };
+  if (kind === 'halve') return { ...base, cfg: {}, rounds: [], pending: [] };
+  if (kind === 'c121') return { ...base, cfg: clone(S.c121), attempts: [], pending: [] };
+  if (kind === 'checkout') { const cfg = clone(S.checkout); return { ...base, cfg, attempts: [], pending: [], cur: coNext(cfg, 0) }; }
+  if (kind === 'scoring') return { ...base, cfg: clone(S.scoring), scores: [] };
+}
+function summarize(s) {
+  const base = { id: s.id, kind: s.kind, date: Date.now() };
+  if (s.kind === 'x01') {
+    const st = x01State(s);
+    return { ...base, cfg: s.cfg, winner: st.winner, players: s.players.map((p, i) => { const S = st.stats[i]; return { name: pName(p), bot: p.bot ? botAvg(p.bot) : 0, avg: S.darts ? S.pts / S.darts * 3 : 0, f9: S.f9d ? S.f9p / S.f9d * 3 : 0, darts: S.darts, legs: st.legsTotal[i], sets: st.setWins[i], t180: S.t180, t140: S.t140, t100: S.t100, hi: S.hi, best: S.best, dA: S.dA, dH: S.dH }; }) };
+  }
+  if (s.kind === 'cricket') {
+    const st = cricketState(s);
+    return { ...base, cfg: s.cfg, winner: st.winner, players: s.players.map((p, i) => ({ name: pName(p), bot: p.bot ? botAvg(p.bot) : 0, legs: st.legsTotal[i], sets: st.setWins[i], mpr: st.stats[i].darts ? st.stats[i].marks / st.stats[i].darts * 3 : 0 })) };
+  }
+  if (s.kind === 'atw') { const st = atwState(s); return { ...base, cfg: s.cfg, key: atwKey(s.cfg), darts: st.darts, hits: st.hits, done: st.done }; }
+  if (s.kind === 'bobs') { const st = bobsState(s); return { ...base, score: Math.max(0, st.score), reached: st.i, dead: st.dead }; }
+  if (s.kind === 'shanghai') { const st = shState(s); return { ...base, cfg: s.cfg, score: st.score, shanghai: st.shanghai, reached: st.i }; }
+  if (s.kind === 'halve') { const st = hvState(s); return { ...base, score: st.score }; }
+  if (s.kind === 'c121') { const st = c121State(s); return { ...base, cfg: s.cfg, best: st.best, ok: st.ok, n: s.attempts.length }; }
+  if (s.kind === 'checkout') { const ok = s.attempts.filter(a => a.ok).length; return { ...base, cfg: s.cfg, ok, n: s.attempts.length }; }
+  if (s.kind === 'scoring') { const tot = s.scores.reduce((a, b) => a + b, 0); return { ...base, cfg: s.cfg, avg: s.scores.length ? tot / s.scores.length : 0, total: tot, hi: Math.max(0, ...s.scores), n: s.scores.length }; }
+}
+// Best value so far for the current kind/variant (higher is better unless noted)
+function recordOf(kind, cfg, excludeId) {
+  const H = DB.history.filter(h => h.kind === kind && h.id !== excludeId);
+  const max = a => a.length ? Math.max(...a) : null;
+  if (kind === 'atw') { const v = H.filter(h => h.key === atwKey(cfg) && h.done).map(h => h.darts); return v.length ? Math.min(...v) : null; }
+  if (kind === 'bobs' || kind === 'halve') return max(H.map(h => h.score));
+  if (kind === 'shanghai') return max(H.filter(h => h.cfg.rounds === cfg.rounds).map(h => h.score));
+  if (kind === 'c121') return max(H.map(h => h.best).filter(Boolean));
+  if (kind === 'scoring') return max(H.filter(h => h.cfg.visits === cfg.visits && h.n === h.cfg.visits).map(h => h.avg));
+  return null;
+}
+function isNewRecord(kind, e, prev) {
+  if (kind === 'atw') return e.done && (prev === null || e.darts < prev);
+  if (kind === 'c121') return e.best > 0 && (prev === null || e.best > prev);
+  const v = kind === 'scoring' ? e.avg : e.score;
+  if (v === undefined) return false;
+  return prev === null ? v > 0 : v > prev;
+}
+function finishSession() {
+  const s = DB.current;
+  cancelBot();
+  const prev = recordOf(s.kind, s.cfg, s.id);
+  s.finished = true;
+  const entry = summarize(s);
+  DB.history = DB.history.filter(h => h.id !== s.id);
+  DB.history.unshift(entry);
+  if (DB.history.length > 500) DB.history.length = 500;
+  s.newRecord = isNewRecord(s.kind, entry, prev);
+  s.prevRecord = prev;
+  UI.sheet = null;
+  save();
+  nav(() => { UI.view = 'summary'; }, 'up');
+}
+function unfinish() {
+  const s = DB.current;
+  if (!s || !s.finished) return;
+  s.finished = false; s.newRecord = false;
+  DB.history = DB.history.filter(h => h.id !== s.id);
+  UI.view = 'play';
+}
+function popPending(list) {
+  while (list.length && list[list.length - 1][0] < 0) list.pop();
+  list.pop();
+}
+function undo() {
+  const s = DB.current;
+  if (!s) return;
+  cancelBot();
+  UI.sheet = null;
+  if (s.finished) unfinish();
+  const k = s.kind;
+  if (k === 'x01' || k === 'cricket') {
+    if (s.pending.length) s.pending.pop();
+    else {
+      let i = s.visits.length - 1;
+      while (i >= 0 && s.players[s.visits[i].p].bot) i--;
+      if (i < 0) { banner('Es gibt noch nichts zum Zurücknehmen.'); render(); return; }
+      const v = s.visits[i];
+      s.visits.length = i;
+      s.pending = v.list && (k === 'cricket' || DB.settings.inputMode === 'darts') ? v.list.slice(0, -1) : [];
+    }
+    UI.entry = '';
+  } else if (k === 'atw') s.throws.pop();
+  else if (k === 'bobs') s.rounds.pop();
+  else if (k === 'scoring') s.scores.pop();
+  else if (k === 'shanghai' || k === 'halve') {
+    if (s.pending.length) s.pending.pop();
+    else if (s.rounds.length) { s.pending = s.rounds.pop(); s.pending.pop(); }
+  } else if (k === 'checkout' || k === 'c121') {
+    if (s.pending.length) popPending(s.pending);
+    else if (s.attempts.length) { const a = s.attempts.pop(); if (k === 'checkout') s.cur = a.t; s.pending = a.list.slice(); popPending(s.pending); }
+  }
+  save(); render(); maybeBot();
+}
+function sessionTitle(s) {
+  if (s.kind === 'x01') return `${s.cfg.start} · ${s.players.map(pName).join(' – ')}`;
+  if (s.kind === 'cricket') return `Cricket · ${s.players.map(pName).join(' – ')}`;
+  return KIND_NAME[s.kind];
+}
+function sessionProgress(s) {
+  if (s.kind === 'x01' || s.kind === 'cricket') {
+    const st = s.kind === 'x01' ? x01State(s) : cricketState(s);
+    const score = s.cfg.sets ? `Sets ${st.setWins.join(' : ')} · Legs ${st.wins.join(' : ')}` : `Legs ${st.wins.join(' : ')}`;
+    return s.kind === 'x01' ? `${score} · Rest ${st.rem.join(' / ')}` : `${score} · Punkte ${st.pts.join(' / ')}`;
+  }
+  if (s.kind === 'atw') { const st = atwState(s); return `Ziel ${atwTarget(st.seq[Math.min(st.idx, st.seq.length - 1)], s.cfg.target)} · ${plural(st.darts, 'Dart', 'Darts')}`; }
+  if (s.kind === 'bobs') { const st = bobsState(s); return `${st.score} Punkte · Runde ${st.i + 1} von 21`; }
+  if (s.kind === 'shanghai') { const st = shState(s); return `${st.score} Punkte · Runde ${st.i + 1} von ${s.cfg.rounds}`; }
+  if (s.kind === 'halve') { const st = hvState(s); return `${st.score} Punkte · Runde ${st.i + 1} von 9`; }
+  if (s.kind === 'checkout' || s.kind === 'c121') return `Versuch ${s.attempts.length + 1} von ${s.cfg.count}`;
+  if (s.kind === 'scoring') return `Aufnahme ${s.scores.length + 1} von ${s.cfg.visits}`;
+  return '';
+}
+
+// ================= Shared view parts =================
+function segc(attrs, opts, cur) {
+  const i = Math.max(0, opts.findIndex(([v]) => String(v) === String(cur)));
+  return `<div class="segc" role="group" style="--n:${opts.length};--i:${i}">${opts.map(([v, l]) => `<button type="button" ${attrs} data-v="${v}" aria-pressed="${String(v) === String(cur)}">${l}</button>`).join('')}</div>`;
+}
+const cfgSeg = (key, opts, cur) => segc(`data-a="cfg" data-k="${key}"`, opts, cur);
+function group(head, cells, foot = '', cls = '') {
+  return `<section class="group">${head ? `<h2 class="group-h">${head}</h2>` : ''}<div class="cells ${cls}">${cells}</div>${foot ? `<p class="group-f">${foot}</p>` : ''}</section>`;
+}
+const segCell = (key, opts, cur) => `<div class="cell">${cfgSeg(key, opts, cur)}</div>`;
+function stepCell(label, key, cur, min, max, sub = '') {
+  return `<div class="cell"><span class="cell-main"><span class="cell-t">${label}</span>${sub ? `<span class="cell-s">${sub}</span>` : ''}</span>
+    <span class="stepv num">${cur}</span>
+    <span class="stepper" role="group" aria-label="${label}"><button data-a="step" data-k="${key}" data-v="-1" data-min="${min}" data-max="${max}" aria-label="${label}: weniger" ${cur <= min ? 'disabled' : ''}>${svg('minus')}</button><i></i><button data-a="step" data-k="${key}" data-v="1" data-min="${min}" data-max="${max}" aria-label="${label}: mehr" ${cur >= max ? 'disabled' : ''}>${svg('plus')}</button></span></div>`;
+}
+function popupCell(label, key, opts, cur) {
+  const sel = opts.find(([v]) => String(v) === String(cur));
+  return `<div class="cell"><span class="cell-main"><span class="cell-t">${label}</span></span><label class="popup"><span>${sel ? sel[1] : ''}</span>${svg('updown')}<select data-k="${key}" aria-label="${label}">${opts.map(([v, l]) => `<option value="${v}"${String(v) === String(cur) ? ' selected' : ''}>${l}</option>`).join('')}</select></label></div>`;
+}
+const switchCell = (label, key, on, sub = '') => `<label class="cell"><span class="cell-main"><span class="cell-t">${label}</span>${sub ? `<span class="cell-s">${sub}</span>` : ''}</span><input type="checkbox" switch class="switch" data-k="${key}"${on ? ' checked' : ''}></label>`;
+function routeChips(darts) { return darts.map(d => `<span class="chip">${dartLabel(d)}</span>`).join(''); }
+function coStrip(r, dl, out) {
+  if (r > 170) return `<div class="co"><span class="co-l">Scoring</span><span>noch ${r - 170} bis in den Finish-Bereich</span></div>`;
+  if (r <= 1) return '<div class="co"></div>';
+  const rt = bestRoute(r, dl, out);
+  if (rt) return `<div class="co" aria-label="Finish-Weg"><span class="co-l">Finish</span>${routeChips(rt.darts)}</div>`;
+  if (bestRoute(r, 3, out)) return `<div class="co"><span class="co-l">Finish</span><span>Mit ${plural(dl, 'Dart', 'Darts')} nicht möglich. Stell dir ${r} gut.</span></div>`;
+  return `<div class="co"><span class="co-l">Finish</span><span>${r} lässt sich nicht checken. Stell dir einen Rest.</span></div>`;
+}
+function slotsHTML(list, { sum = null, max = 3, label = dl => dartLabel(dart(dl[0], dl[1])) } = {}) {
+  let h = '';
+  for (let i = 0; i < max; i++) {
+    const d = list[i];
+    if (d && d[0] < 0) h += '<div class="slot x">verfällt</div>';
+    else if (d) h += `<div class="slot f">${label(d)}</div>`;
+    else h += `<div class="slot${i === list.length ? ' nx' : ''}">${i + 1}</div>`;
+  }
+  return `<div class="slots" aria-label="Darts dieser Aufnahme">${h}${sum !== null ? `<div class="slot-sum">${sum}</div>` : ''}</div>`;
+}
+function modeSwitch() { return segc('data-a="imode"', [['sum', 'Summe'], ['darts', 'Pfeile']], DB.settings.inputMode); }
+function sumPad({ hint = '', bad = false, quick = [26, 41, 45, 60, 100, 140], sw = true } = {}) {
+  const e = UI.entry;
+  return `<div class="entry-row">
+      <div class="entry" aria-live="polite"><span class="entry-v${e ? '' : ' ph'}">${e || '0'}</span><span class="entry-h${bad ? ' bad' : ''}">${hint}</span></div>
+      ${sw ? modeSwitch() : ''}
+    </div>
+    <div class="keys k6">${quick.map(q => `<button class="key sm" data-a="quick" data-v="${q}" aria-label="${q} eintragen">${q}</button>`).join('')}</div>
+    <div class="keys k3">
+      ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => `<button class="key" data-a="key" data-v="${d}">${d}</button>`).join('')}
+      <button class="key" data-a="keydel" aria-label="Ziffer löschen">${svg('del')}</button>
+      <button class="key" data-a="key" data-v="0">0</button>
+      <button class="key go" data-a="ok">Eintragen</button>
+    </div>`;
+}
+function dartPad({ list = [], sum = null, sw = true, cricket = false, head = true, extra = '' } = {}) {
+  const m = UI.mod, pre = m === 2 ? 'D' : m === 3 ? 'T' : '';
+  const nums = cricket ? [20, 19, 18, 17, 16, 15] : Array.from({ length: 20 }, (_, i) => i + 1);
+  const grid = cricket
+    ? `<div class="keys k4">${nums.map(n => `<button class="key" data-a="dart" data-v="${n}">${pre}${n}</button>`).join('')}
+        <button class="key" data-a="dart" data-v="25" ${m === 3 ? 'disabled' : ''}>${m === 2 ? 'Bull' : '25'}</button>
+        <button class="key txt" data-a="dart" data-v="0">Daneben</button></div>`
+    : `<div class="keys k5">${nums.map(n => `<button class="key" data-a="dart" data-v="${n}">${pre}${n}</button>`).join('')}</div>
+       <div class="keys k3">
+         <button class="key" data-a="dart" data-v="25" ${m === 3 ? 'disabled' : ''}>${m === 2 ? 'Bull' : '25'}</button>
+         <button class="key" data-a="dart" data-v="50">Bull</button>
+         <button class="key txt" data-a="dart" data-v="0">Daneben</button>
+       </div>`;
+  return `${head ? `<div class="entry-row">${slotsHTML(list, { sum })}${sw ? modeSwitch() : ''}</div>` : ''}
+    <div class="mods">
+      <button class="mod" data-a="mod" data-v="2" aria-pressed="${m === 2}">Double</button>
+      <button class="mod" data-a="mod" data-v="3" aria-pressed="${m === 3}">Triple</button>
+      <button class="key sm" data-a="pdel" aria-label="Letzten Dart löschen">${svg('del')}</button>
+    </div>${grid}${extra}`;
+}
+function botPanel(s) {
+  const b = UI.bot, shown = b.throws.slice(0, b.shown);
+  const list = shown.map(t => [t.hit.n, t.hit.m]);
+  return `<div class="botpanel">
+      <div class="fn dim">${esc(pName(s.players[b.p]))} wirft</div>
+      ${slotsHTML(list, { sum: list.reduce((a, [n, m]) => a + n * m, 0) })}
+      ${boardSVG({ markers: shown.map(t => ({ x: t.x, y: t.y })), label: 'Würfe des Bots' })}
+      <button class="btn small" data-a="botskip">Überspringen</button>
+    </div>`;
+}
+function pbar(title, sub) {
+  return `<header class="pbar">
+    <button class="gbtn glass" data-a="leave" aria-label="Spiel verlassen">${svg('close')}</button>
+    <div class="pbar-t"><b>${title}</b><span>${sub}</span></div>
+    <button class="gbtn glass" data-a="undo" aria-label="Letzte Eingabe zurücknehmen">${svg('undo')}</button>
+  </header>`;
+}
+function bigBtns(btns) {
+  return `<div class="bigbtns" style="--n:${btns.length}">${btns.map(b => `<button class="bigbtn${b.go ? ' go' : ''}" data-a="${b.a}" data-v="${b.v}" ${b.dis ? 'disabled' : ''}>${b.l}${b.s ? `<small>${b.s}</small>` : ''}</button>`).join('')}</div>`;
+}
+
+// ================= Tabs =================
+const TABS = [['play', 'Spielen', 'target'], ['train', 'Training', 'dumbbell'], ['stats', 'Statistik', 'chart']];
+function vTabs() {
+  const title = TABS.find(t => t[0] === UI.tab)[1];
+  const body = UI.tab === 'play' ? tabPlay() : UI.tab === 'train' ? tabTrain() : tabStats();
+  return `<div class="view with-side">
+    <div class="topbar" id="topbar"><span></span><div class="tb-title">${title}</div><span></span></div>
+    <div class="scroll" data-key="tab-${UI.tab}"><main class="content"><h1 class="lt">${title}</h1>${body}</main></div>
+    <nav class="tabbar glass${UI.compact ? ' compact' : ''}" aria-label="Bereiche">${TABS.map(([k, l, i]) => `<button class="tab" data-a="tab" data-v="${k}"${UI.tab === k ? ' aria-current="page"' : ''}>${svg(i)}<span>${l}</span></button>`).join('')}</nav>
+  </div>`;
+}
+function tabPlay() {
+  const c = DB.current, S = DB.settings;
+  const bot = S.players.find(p => p.bot), ba = bot ? botAvg(bot.bot) : 45;
+  const resume = c ? `<div class="card">
+      <div><div class="fn dim">${c.finished ? 'Beendet' : 'Laufendes Spiel'}</div><div class="t3">${esc(sessionTitle(c))}</div><div class="sub dim">${esc(c.finished ? 'Das Ergebnis ist gespeichert.' : sessionProgress(c))}</div></div>
+      <div class="row"><button class="btn fill" data-a="resume">${c.finished ? 'Ergebnis ansehen' : 'Weiterspielen'}</button><button class="btn" data-a="discardAsk">${c.finished ? 'Schließen' : 'Beenden'}</button></div>
+    </div>` : '';
+  return `${resume}
+    <div class="card">
+      <div><div class="fn dim">Schnellstart</div><div class="t2">${S.x01.start} gegen Bot Ø ${ba}</div><div class="sub dim">${botTitle(ba)} · ${outLabel(S.x01.out)} · ${formatLabel(matchCfgFrom(S.x01))}</div></div>
+      <button class="btn fill" data-a="quickbot">Spiel starten</button>
+    </div>
+    <section class="sec"><h2 class="sec-title">Spielmodi</h2>
+      <div class="cells icons">
+        <button class="cell" data-a="setup" data-v="x01"><span class="cell-icon">${svg('target')}</span><span class="cell-main"><span class="cell-t">X01</span><span class="cell-s">301, 501 oder 701 · Legs oder Sets</span></span><span class="chev">${svg('chev')}</span></button>
+        <button class="cell" data-a="setup" data-v="cricket"><span class="cell-icon">${svg('cricket')}</span><span class="cell-main"><span class="cell-t">Cricket</span><span class="cell-s">15 bis 20 und Bull schließen</span></span><span class="chev">${svg('chev')}</span></button>
+      </div>
+    </section>`;
+}
+const TRAININGS = [
+  ['atw', 'clock', 'Rund um die Uhr', '1 bis 20 der Reihe nach treffen'],
+  ['bobs', 'rings', "Bob's 27", 'Doppel von D1 bis Bull'],
+  ['shanghai', 'stack', 'Shanghai', 'Punkte sammeln, Runde für Runde'],
+  ['halve', 'divide', 'Halve-It', 'Ohne Treffer halbiert sich der Stand'],
+  ['c121', 'stairs', '121', '9 Darts pro Finish, Ziel steigt'],
+  ['checkout', 'flag', 'Checkout-Training', 'Zufällige Finishes mit Weg'],
+  ['scoring', 'gauge', 'Scoring', 'Average auf T20 messen'],
+];
+function trainRecord(kind) {
+  const S = DB.settings, H = DB.history.filter(h => h.kind === kind);
+  if (kind === 'checkout') { const ok = H.reduce((a, h) => a + h.ok, 0), n = H.reduce((a, h) => a + h.n, 0); return n ? `<b>${pct(ok, n)}</b>Quote` : ''; }
+  const r = recordOf(kind, S[kind] || {}, null);
+  if (r === null) return '';
+  if (kind === 'atw') return `<b>${r}</b>Darts`;
+  if (kind === 'scoring') return `<b>Ø ${f1(r)}</b>Bestwert`;
+  if (kind === 'c121') return `<b>${r}</b>höchstes`;
+  return `<b>${r}</b>Punkte`;
+}
+function tabTrain() {
+  return `${group('', TRAININGS.map(([k, ic, t, s]) => `<button class="cell" data-a="setup" data-v="${k}"><span class="cell-icon">${svg(ic)}</span><span class="cell-main"><span class="cell-t">${t}</span><span class="cell-s">${s}</span></span><span class="cell-v">${trainRecord(k)}</span><span class="chev">${svg('chev')}</span></button>`).join(''), 'Bestwerte beziehen sich auf die zuletzt gewählte Variante und bleiben auf diesem Gerät gespeichert.', 'icons')}`;
+}
+function statsPlayers() {
+  const c = {};
+  for (const h of DB.history) if (GAME_KINDS.includes(h.kind)) for (const p of h.players) if (!p.bot) c[p.name] = (c[p.name] || 0) + 1;
+  return Object.keys(c).sort((a, b) => c[b] - c[a]);
+}
+const histName = p => p.bot ? botLabel(p.bot) : p.name;
+function lineChart(pts) {
+  const W = 340, H = 170, L = 30, Rr = 36, T = 14, B = 24;
+  const vs = pts.map(p => p.v);
+  let lo = Math.floor(Math.min(...vs) / 10) * 10, hi = Math.ceil(Math.max(...vs) / 10) * 10;
+  if (hi - lo < 20) { const m = (hi + lo) / 2; lo = Math.max(0, Math.floor((m - 10) / 10) * 10); hi = lo + 20; }
+  const step = (hi - lo) <= 40 ? 10 : (hi - lo) <= 80 ? 20 : 30;
+  const n = pts.length;
+  const X = i => L + (n === 1 ? (W - L - Rr) / 2 : i * (W - L - Rr) / (n - 1));
+  const Y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  let g = '';
+  for (let v = lo; v <= hi; v += step) g += `<line class="grid" x1="${L}" x2="${W - Rr + 6}" y1="${Y(v)}" y2="${Y(v)}"/><text class="axis" x="${L - 6}" y="${Y(v)}" text-anchor="end" dominant-baseline="central">${v}</text>`;
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(p.v).toFixed(1)}`).join('');
+  const area = n > 1 ? `<path class="ar" d="${line}L${X(n - 1).toFixed(1)} ${H - B}L${X(0).toFixed(1)} ${H - B}Z"/>` : '';
+  const lx = X(n - 1), ly = Y(pts[n - 1].v);
+  const xl = `<text class="axis" x="${X(0)}" y="${H - 6}" text-anchor="${n > 1 ? 'start' : 'middle'}">${esc(pts[0].d)}</text>${n > 1 ? `<text class="axis" x="${lx}" y="${H - 6}" text-anchor="end">${esc(pts[n - 1].d)}</text>` : ''}`;
+  return `<div class="chart-card"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="3-Dart-Average je Spiel, zuletzt ${f1(pts[n - 1].v)}" data-n="${n}" data-l="${L}" data-r="${Rr}" data-w="${W}">
+      ${g}${area}<path class="ln" d="${line}"/>
+      <line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" visibility="hidden"/>
+      <circle class="dot" cx="${lx}" cy="${ly}" r="4.5"/><text class="lab" x="${lx + 8}" y="${ly}" dominant-baseline="central">${f1(pts[n - 1].v)}</text>
+      ${xl}<rect x="${L}" y="0" width="${W - L - Rr}" height="${H}" fill="transparent"/>
+    </svg><div class="tip glass" hidden></div></div>`;
+}
+function bindChart() {
+  const svgEl = $app.querySelector('.chart');
+  if (!svgEl) return;
+  const tip = svgEl.parentElement.querySelector('.tip'), xh = svgEl.querySelector('.xh');
+  const n = +svgEl.dataset.n, L = +svgEl.dataset.l, Rr = +svgEl.dataset.r, W = +svgEl.dataset.w;
+  const data = UI.chartData || [];
+  const move = ev => {
+    const r = svgEl.getBoundingClientRect(), sx = (ev.clientX - r.left) / r.width * W;
+    const i = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round((sx - L) / ((W - L - Rr) / (n - 1)))));
+    const x = n === 1 ? L + (W - L - Rr) / 2 : L + i * (W - L - Rr) / (n - 1);
+    xh.setAttribute('x1', x); xh.setAttribute('x2', x); xh.setAttribute('visibility', 'visible');
+    const d = data[i];
+    if (!d) return;
+    tip.hidden = false;
+    tip.textContent = '';
+    const b = document.createElement('b'); b.textContent = 'Ø ' + f1(d.v);
+    tip.append(b, document.createTextNode(d.d + ' · ' + d.vs));
+    tip.style.left = Math.max(70, Math.min(r.width - 70, x / W * r.width + 10)) + 'px';
+  };
+  const leave = () => { tip.hidden = true; xh.setAttribute('visibility', 'hidden'); };
+  svgEl.addEventListener('pointermove', move);
+  svgEl.addEventListener('pointerdown', move);
+  svgEl.addEventListener('pointerleave', leave);
+}
+function tabStats() {
+  const H = DB.history, names = statsPlayers();
+  const me = UI.statsPlayer && names.includes(UI.statsPlayer) ? UI.statsPlayer : names[0];
+  const x = H.filter(h => h.kind === 'x01').map(h => ({ h, p: h.players.find(p => p.name === me && !p.bot) })).filter(r => r.p);
+  let main = '';
+  if (!names.length) {
+    main = '<div class="empty">Hier erscheinen dein Average-Verlauf, 180er, Finishes und deine Bilanz gegen Bots, sobald du dein erstes X01-Spiel beendet hast.</div>';
+  } else {
+    const last10 = x.slice(0, 10);
+    const avg10 = last10.length ? last10.reduce((a, r) => a + r.p.avg, 0) / last10.length : null;
+    const bestAvg = x.length ? Math.max(...x.map(r => r.p.avg)) : null;
+    const t180 = x.reduce((a, r) => a + r.p.t180, 0);
+    const hiF = x.length ? Math.max(0, ...x.map(r => r.p.hi)) : 0;
+    const vsBot = H.filter(h => GAME_KINDS.includes(h.kind) && h.players.some(p => p.bot) && h.players.some(p => p.name === me && !p.bot));
+    const wins = vsBot.filter(h => h.players[h.winner] && h.players[h.winner].name === me && !h.players[h.winner].bot).length;
+    const dA = x.reduce((a, r) => a + r.p.dA, 0), dH = x.reduce((a, r) => a + r.p.dH, 0);
+    const series = x.slice(0, 30).reverse().map(r => ({ v: r.p.avg, d: dateDE(r.h.date), vs: r.h.players.filter(p => p !== r.p).map(histName).join(', ') || 'solo' }));
+    UI.chartData = series;
+    main = `${names.length > 1 ? segc('data-a="sp"', names.slice(0, 4).map(n => [esc(n), esc(n)]), esc(me)) : ''}
+      <div class="tiles">
+        <div class="tile"><span>Ø letzte ${last10.length || 10} Spiele</span><b>${avg10 !== null ? f1(avg10) : '–'}</b></div>
+        <div class="tile"><span>Bester Average</span><b>${bestAvg !== null ? f1(bestAvg) : '–'}</b></div>
+        <div class="tile"><span>180er</span><b>${t180}</b></div>
+        <div class="tile"><span>Höchstes Finish</span><b>${hiF || '–'}</b></div>
+        <div class="tile"><span>Gegen Bots</span><b>${vsBot.length ? `${wins} : ${vsBot.length - wins}` : '–'}</b></div>
+        <div class="tile"><span>Checkout-Quote</span><b>${dA ? pct(dH, dA) : '–'}</b></div>
+      </div>
+      ${series.length ? `<section class="sec"><h2 class="sec-title">Average je X01-Spiel</h2>${lineChart(series)}</section>` : ''}`;
+  }
+  const recs = [];
+  const atwBest = {};
+  for (const h of H.filter(h => h.kind === 'atw' && h.done)) if (!atwBest[h.key] || h.darts < atwBest[h.key].darts) atwBest[h.key] = h;
+  for (const h of Object.values(atwBest)) recs.push([`Rund um die Uhr · ${atwName(h.cfg)}`, `${h.darts} Darts`]);
+  const best = (k, f = h => h.score) => { const v = H.filter(h => h.kind === k).map(f).filter(v => v !== undefined); return v.length ? Math.max(...v) : null; };
+  if (best('bobs') !== null) recs.push(["Bob's 27", `${best('bobs')} Punkte`]);
+  for (const r of [7, 20]) { const v = H.filter(h => h.kind === 'shanghai' && h.cfg.rounds === r).map(h => h.score); if (v.length) recs.push([`Shanghai · ${r} Runden`, `${Math.max(...v)} Punkte`]); }
+  if (best('halve') !== null) recs.push(['Halve-It', `${best('halve')} Punkte`]);
+  if (best('c121', h => h.best) > 0) recs.push(['121 · höchstes Finish', String(best('c121', h => h.best))]);
+  const coBy = {};
+  for (const h of H.filter(h => h.kind === 'checkout')) { const k = h.cfg.range; coBy[k] = coBy[k] || { ok: 0, n: 0 }; coBy[k].ok += h.ok; coBy[k].n += h.n; }
+  for (const [k, v] of Object.entries(coBy)) recs.push([`Checkout ${k.replace('-', '–')}`, `${pct(v.ok, v.n)} (${v.ok}/${v.n})`]);
+  const sc = {};
+  for (const h of H.filter(h => h.kind === 'scoring' && h.n === h.cfg.visits)) if (!sc[h.cfg.visits] || h.avg > sc[h.cfg.visits]) sc[h.cfg.visits] = h.avg;
+  for (const [k, v] of Object.entries(sc)) recs.push([`Scoring · ${k} Aufnahmen`, `Ø ${f1(v)}`]);
+  const hist = H.slice(0, 25).map(h => {
+    let t = KIND_NAME[h.kind], sub = dateDE(h.date), r = '';
+    if (GAME_KINDS.includes(h.kind)) {
+      t = (h.kind === 'x01' ? h.cfg.start : 'Cricket') + ' · ' + h.players.map(histName).join(' – ');
+      const W = h.players[h.winner];
+      sub += ` · Sieg ${W ? histName(W) : ''}`;
+      const score = h.cfg.sets ? h.players.map(p => p.sets).join(':') : h.players.map(p => p.legs).join(':');
+      r = `<b>${score}</b>${h.cfg.sets ? 'Sets' : 'Legs'}`;
+    } else if (h.kind === 'atw') { sub += ` · ${atwName(h.cfg)}`; r = `<b>${h.darts}</b>Darts`; }
+    else if (h.kind === 'bobs' || h.kind === 'halve' || h.kind === 'shanghai') r = `<b>${h.score}</b>Punkte`;
+    else if (h.kind === 'c121') r = `<b>${h.best || '–'}</b>höchstes`;
+    else if (h.kind === 'checkout') { sub += ` · ${h.cfg.range.replace('-', '–')}`; r = `<b>${h.ok}/${h.n}</b>gecheckt`; }
+    else if (h.kind === 'scoring') r = `<b>${f1(h.avg)}</b>Ø`;
+    return `<div class="cell"><span class="cell-main"><span class="cell-t">${esc(t)}</span><span class="cell-s">${esc(sub)}</span></span><span class="cell-v">${r}</span></div>`;
+  }).join('');
+  return `${main}
+    ${group('Trainingsrekorde', recs.length ? recs.map(([a, b]) => `<div class="cell"><span class="cell-main"><span class="cell-t">${esc(a)}</span></span><span class="cell-v"><b>${esc(b)}</b></span></div>`).join('') : '<div class="cell"><span class="cell-main cell-s">Noch keine Trainingseinheit abgeschlossen.</span></div>')}
+    ${hist ? group('Verlauf', hist) : ''}
+    ${group('Daten übertragen', `${H.length ? '<button class="cell act" data-a="exportData"><span class="cell-main">Daten kopieren</span></button>' : ''}<button class="cell act" data-a="importAsk"><span class="cell-main">Daten einfügen</span></button>`, 'Damit nimmst du Statistik und Einstellungen in eine andere Kopie der App mit, zum Beispiel von der Vorschau in die App auf deinem Home-Bildschirm.')}
+    ${H.length ? group('', '<button class="cell" data-a="wipeAsk"><span class="cell-main" style="color:var(--red)">Statistik löschen</span></button>') : ''}`;
+}
+
+// ================= Setup =================
+function formatGroup(kind) {
+  const F = DB.settings[kind];
+  const cells = segCell(`${kind}.format`, [['legs', 'Legs'], ['sets', 'Sets']], F.format) + (F.format === 'sets'
+    ? stepCell('Sets zum Sieg', `${kind}.sets`, F.sets, 1, 7) + stepCell('Legs pro Set', `${kind}.setLegs`, F.setLegs, 1, 6, `Wer zuerst ${plural(F.setLegs, 'Leg', 'Legs')} gewinnt, holt das Set`)
+    : stepCell('Legs zum Sieg', `${kind}.legs`, F.legs, 1, 11));
+  const foot = F.format === 'sets'
+    ? `Gewonnen hat, wer zuerst ${plural(F.sets, 'Set', 'Sets')} holt. Der Anwurf wechselt jedes Leg, und jedes neue Set eröffnet der nächste Spieler.`
+    : `Gewonnen hat, wer zuerst ${plural(F.legs, 'Leg', 'Legs')} holt. Der Anwurf wechselt jedes Leg.`;
+  return group('Format', cells, foot);
+}
+function playersGroup() {
+  const P = DB.settings.players;
+  const rows = P.map((p, i) => {
+    const up = i > 0 ? `<button class="ibtn" data-a="pup" data-v="${i}" aria-label="${esc(pName(p))} nach oben">${svg('up')}</button>` : '';
+    const del = P.length > 1 ? `<button class="ibtn destr" data-a="pdel" data-v="${i}" aria-label="${esc(pName(p))} entfernen">${svg('minusCircle')}</button>` : '';
+    if (p.bot) {
+      const a = botAvg(p.bot);
+      return `<div class="cell"><span class="pnum">${i + 1}</span><span class="cell-main"><span class="cell-t">Bot</span><span class="cell-s">${botTitle(a)}</span></span>${up}${del}
+        <div class="prow2"><span class="cell-s">Average</span>
+          <label class="popup"><span>Ø ${a}</span>${svg('updown')}<select data-pi="${i}" aria-label="Average von Bot ${i + 1}">${BOT_AVGS.map(v => `<option value="${v}"${v === a ? ' selected' : ''}>Ø ${v} · ${botTitle(v)}</option>`).join('')}</select></label>
+          <span class="stepper" role="group" aria-label="Stärke"><button data-a="botstep" data-v="${i}" data-d="-5" aria-label="Bot ${i + 1} schwächer" ${a <= 20 ? 'disabled' : ''}>${svg('minus')}</button><i></i><button data-a="botstep" data-v="${i}" data-d="5" aria-label="Bot ${i + 1} stärker" ${a >= 110 ? 'disabled' : ''}>${svg('plus')}</button></span>
+        </div></div>`;
+    }
+    return `<div class="cell"><span class="pnum">${i + 1}</span><input class="tf" type="text" id="pn${i}" data-pi="${i}" value="${esc(p.name)}" maxlength="16" autocomplete="off" autocapitalize="words" enterkeyhint="done" placeholder="Name" aria-label="Name von Spieler ${i + 1}">${up}${del}</div>`;
+  }).join('');
+  const add = P.length < 4 ? `<button class="cell act" data-a="padd" data-v="h"><span class="pnum">${svg('personAdd')}</span><span class="cell-main">Spieler hinzufügen</span></button><button class="cell act" data-a="padd" data-v="b"><span class="pnum">${svg('cpu')}</span><span class="cell-main">Bot hinzufügen</span></button>` : '';
+  const foot = P.every(p => p.bot) ? '<span style="color:var(--red)">Mindestens ein Teilnehmer muss ein Mensch sein.</span>' : `Wer oben steht, beginnt. Bots stellst du in Fünferschritten von Ø 20 bis Ø 110 ein.${P.length >= 4 ? ' Maximal vier Teilnehmer.' : ''}`;
+  return group('Spieler', rows + add, foot);
+}
+const SETUP = {
+  x01: () => [`${group('Startpunkte', segCell('x01.start', [[301, '301'], [501, '501'], [701, '701']], DB.settings.x01.start))}
+    ${group('', popupCell('Finish', 'x01.out', [['double', 'Double Out'], ['single', 'Single Out'], ['master', 'Master Out']], DB.settings.x01.out), { double: 'Der letzte Dart muss ein Doppel oder das Bull sein.', single: 'Jedes Segment darf das Leg beenden.', master: 'Der letzte Dart muss ein Doppel, Triple oder das Bull sein.' }[DB.settings.x01.out])}
+    ${formatGroup('x01')}${playersGroup()}`, true],
+  cricket: () => [`<p class="intro">Jeder muss <b>20, 19, 18, 17, 16, 15 und Bull</b> je dreimal treffen. Double zählt zweimal, Triple dreimal. Auf geschlossenen Zahlen sammelst du Punkte, solange ein Gegner sie noch offen hat. Es gewinnt, wer alles geschlossen hat und vorne liegt oder gleichauf ist.</p>
+    ${formatGroup('cricket')}${playersGroup()}`, true],
+  atw: () => [`<p class="intro">Triff die Zahlen <b>der Reihe nach von 1 bis 20</b>. Erst nach einem Treffer geht es zur nächsten Zahl. Gezählt werden alle Darts bis zum Ziel.</p>
+    ${group('Was als Treffer zählt', segCell('atw.target', [['any', 'Segment'], ['double', 'Doppel'], ['treble', 'Triple']], DB.settings.atw.target))}
+    ${group('', switchCell('Bull am Ende', 'atw.bull', DB.settings.atw.bull) + (DB.settings.atw.target === 'any' ? switchCell('Sprung', 'atw.skip', DB.settings.atw.skip, 'Double bringt zwei Felder weiter, Triple drei') : ''))}`, false],
+  bobs: () => [`<p class="intro">Du startest mit <b>27 Punkten</b> und wirfst je drei Darts auf D1, D2 bis D20 und zum Schluss auf das Bull. Jeder Treffer bringt den Wert des Doppels. Ohne Treffer in einer Runde wird der Wert einmal abgezogen. Fällt dein Stand auf 0 oder darunter, ist das Training vorbei. Möglich sind bis zu 1437 Punkte.</p>`, false],
+  shanghai: () => [`<p class="intro">In Runde 1 zielst du auf die 1, in Runde 2 auf die 2 und so weiter. Jeder Treffer zählt seinen Wert: Single einfach, Double doppelt, Triple dreifach. Triffst du in einer Runde <b>Single, Double und Triple</b> der Zahl, ist das ein Shanghai und das Spiel sofort gewonnen.</p>
+    ${group('Runden', segCell('shanghai.rounds', [[7, '1 bis 7'], [20, '1 bis 20']], DB.settings.shanghai.rounds))}`, false],
+  halve: () => [`<p class="intro">Neun Runden mit je drei Darts auf diese Ziele. Du startest mit <b>40 Punkten</b>. Jeder Treffer aufs Ziel zählt seine Punkte. Triffst du in einer Runde gar nicht, <b>halbiert sich dein Stand</b>.</p>
+    ${group('Ziele', `<div class="cell"><div class="chips">${HALVE_SEQ.map(t => `<span class="chip">${hvLabel(t)}</span>`).join('')}</div></div>`, 'Doppel und Triple: jedes Doppel- bzw. Triple-Feld zählt.')}`, false],
+  c121: () => [`<p class="intro">Du hast <b>9 Darts</b>, um 121 mit Double Out zu checken. Schaffst du es, steigt das Ziel um eins. Schaffst du es nicht, sinkt es um eins, aber nie unter 121.</p>
+    ${group('Versuche', segCell('c121.count', [[10, '10'], [20, '20']], DB.settings.c121.count))}`, false],
+  checkout: () => [`<p class="intro">Du bekommst eine zufällige Restzahl mit empfohlenem Weg. Gib jeden Dart ein, dann rechnet die App den Rest neu und zeigt den nächsten Weg. Gespielt wird Double Out.</p>
+    ${group('Bereich', segCell('checkout.range', [['2-40', '2–40'], ['41-80', '41–80'], ['81-120', '81–120'], ['121-170', '121–170'], ['2-170', 'Alle']], DB.settings.checkout.range))}
+    ${group('Darts pro Versuch', segCell('checkout.darts', [[3, '3'], [6, '6'], [9, '9']], DB.settings.checkout.darts))}
+    ${group('Versuche', segCell('checkout.count', [[10, '10'], [20, '20'], [30, '30']], DB.settings.checkout.count))}`, false],
+  scoring: () => [`<p class="intro">Wirf auf die <b>T20</b> oder dein Lieblingsfeld und trag nach jeder Aufnahme die Punkte ein. Am Ende steht dein 3-Dart-Average.</p>
+    ${group('Aufnahmen', segCell('scoring.visits', [[10, '10'], [20, '20'], [33, '33 (99 Darts)']], DB.settings.scoring.visits))}`, false],
+};
+function vSetup() {
+  const k = UI.setup, [body, isGame] = SETUP[k](), title = KIND_NAME[k];
+  const blocked = isGame && DB.settings.players.every(p => p.bot);
+  const note = DB.current && !DB.current.finished ? '<span class="fn">Dein laufendes Spiel wird dabei beendet.</span>' : '';
+  return `<div class="view">
+    <div class="topbar" id="topbar"><button class="gbtn glass" data-a="back" aria-label="Zurück">${svg('back')}</button><div class="tb-title">${title}</div><span></span></div>
+    <div class="scroll" data-key="setup-${k}"><main class="content"><h1 class="lt">${title}</h1>${body}</main></div>
+    <div class="cta">${note}<button class="btn fill" data-a="start" data-v="${k}" ${blocked ? 'disabled' : ''}>${isGame ? 'Spiel starten' : 'Training starten'}</button></div>
+  </div>`;
+}
+
+// ================= Play =================
+function vPlay() {
+  const s = DB.current;
+  if (!s) return vTabs();
+  const V = { x01: vX01, cricket: vCricket, atw: vATW, bobs: vBobs, shanghai: vShanghai, halve: vHalve, c121: vAttempt, checkout: vAttempt, scoring: vScoring }[s.kind];
+  return `<div class="view play">${V(s)}</div>`;
+}
+function matchSub(s, st) { return s.cfg.sets ? `Set ${st.set + 1} · Leg ${st.legInSet + 1}` : `Leg ${st.leg + 1} · ${formatLabel(s.cfg)}`; }
+function vX01(s) {
+  const st = x01State(s), n = s.players.length, out = s.cfg.out;
+  const botTurn = UI.bot && UI.bot.p === st.turn;
+  const pend = botTurn ? UI.bot.throws.slice(0, UI.bot.shown).map(t => [t.hit.n, t.hit.m]) : DB.settings.inputMode === 'darts' ? s.pending : [];
+  const ev = evalDarts(st.rem[st.turn], pend, out);
+  const liveRem = ev.bust ? st.rem[st.turn] : ev.rem;
+  const cards = s.players.map((p, i) => {
+    const S = st.stats[i], on = i === st.turn, rem = on ? liveRem : st.rem[i];
+    return `<div class="pc${on ? ' on' : ''}">
+      <div class="pc-top"><span class="pc-name">${esc(pName(p))}</span>${on ? '<span class="onbadge">Am Zug</span>' : ''}</div>
+      <div class="pc-sets">${s.cfg.sets ? `Sets <b>${st.setWins[i]}</b> · Legs <b>${st.wins[i]}</b>` : `Legs <b>${st.wins[i]}</b> von ${s.cfg.legs}`}</div>
+      <div class="pc-rem" aria-label="Rest ${rem}">${rem}</div>
+      <div class="pc-meta"><span>Ø ${avg3(S.pts, S.darts)}</span><span>${S.darts} Darts</span></div>
+      <ol class="pc-log" aria-label="Aufnahmen in diesem Leg">${st.log[i].slice(-12).reverse().map(e => `<li>${e.b ? '<span class="bust">Überworfen</span>' : `<b>${e.t}</b>`}<span>${e.r}</span></li>`).join('')}</ol>
+    </div>`;
+  }).join('');
+  let pad;
+  if (botTurn) pad = botPanel(s);
+  else if (DB.settings.inputMode === 'darts') pad = dartPad({ list: pend, sum: pend.length ? pend.reduce((a, [nn, m]) => a + nn * m, 0) : null });
+  else {
+    const e = +UI.entry, rem = st.rem[st.turn];
+    let hint = 'Punkte dieser Aufnahme', bad = false;
+    if (UI.entry !== '') {
+      if (!POSSIBLE_TOTALS.has(e)) { hint = 'Mit 3 Darts nicht möglich'; bad = true; }
+      else if (e > rem || (out !== 'single' && rem - e === 1) || (e === rem && !minDartsToFinish(rem, out))) { hint = 'Überworfen'; bad = true; }
+      else if (e === rem) hint = 'Checkout';
+      else hint = `Rest ${rem - e}`;
+    }
+    pad = sumPad({ hint, bad });
+  }
+  return `${pbar(`${s.cfg.start} · ${outLabel(out)}`, matchSub(s, st))}
+    <div class="pmain">
+      <div class="stage">
+        <div class="cards n${n}" style="--cols:${n === 1 ? 1 : 2}">${cards}</div>
+        ${coStrip(liveRem, Math.max(1, 3 - pend.length), out)}
+      </div>
+      <div class="pad">${pad}</div>
+    </div>`;
+}
+function ckMarkSVG(k, pending) {
+  if (!k) return '';
+  const l = '<path class="mkc" d="M8 24L24 8"/>', x = '<path class="mkc" d="M8 8L24 24"/>', o = '<circle class="mkc" cx="16" cy="16" r="13"/>';
+  return `<svg viewBox="0 0 32 32" class="${pending ? 'pend' : ''}" role="img" aria-label="${k} von 3">${l}${k >= 2 ? x : ''}${k >= 3 ? o : ''}</svg>`;
+}
+function vCricket(s) {
+  const st = cricketState(s), n = s.players.length, p = st.turn;
+  const botTurn = UI.bot && UI.bot.p === p;
+  const pend = botTurn ? UI.bot.throws.slice(0, UI.bot.shown).map(t => [t.hit.n, t.hit.m]) : s.pending;
+  const marks = clone(st.marks), pts = st.pts.slice();
+  ckApply(marks, pts, p, pend);
+  const head = i => { const S = st.stats[i]; return `<th class="${i === p ? 'on' : ''}"><span class="pn">${esc(pName(s.players[i]))}</span><span class="pp">${pts[i]}</span><span class="pm">${s.cfg.sets ? `Sets ${st.setWins[i]} · ` : ''}Legs ${st.wins[i]} · MPR ${S.darts ? f1(S.marks / S.darts * 3) : '–'}</span></th>`; };
+  const cell = (i, num) => `<td>${ckMarkSVG(marks[i][num], i === p && marks[i][num] !== st.marks[i][num])}</td>`;
+  const dead = num => n > 1 && marks.every(m => m[num] >= 3) ? 'dead' : '';
+  const table = n === 2
+    ? `<thead><tr>${head(0)}<th></th>${head(1)}</tr></thead><tbody>${CRICKET_NUMS.map(num => `<tr class="${dead(num)}">${cell(0, num)}<td class="cn">${CK_LABEL(num)}</td>${cell(1, num)}</tr>`).join('')}</tbody>`
+    : `<thead><tr><th></th>${s.players.map((_, i) => head(i)).join('')}</tr></thead><tbody>${CRICKET_NUMS.map(num => `<tr class="${dead(num)}"><td class="cn">${CK_LABEL(num)}</td>${s.players.map((_, i) => cell(i, num)).join('')}</tr>`).join('')}</tbody>`;
+  const pad = botTurn ? botPanel(s) : dartPad({ list: pend, sw: false, cricket: true, extra: '<button class="btn small" data-a="ckrest">Rest daneben, Aufnahme beenden</button>' });
+  return `${pbar('Cricket', matchSub(s, st))}
+    <div class="pmain"><div class="stage"><div class="ckcard"><table class="ck-t">${table}</table></div></div><div class="pad">${pad}</div></div>`;
+}
+function trTop(lab, big, side) { return `<div class="trtop"><div><span class="lab">${lab}</span><span class="trbig">${big}</span></div><div class="trside">${side}</div></div>`; }
+function vATW(s) {
+  const st = atwState(s), cfg = s.cfg, cur = st.seq[Math.min(st.idx, st.seq.length - 1)];
+  const inVisit = st.darts % 3, vis = s.throws.slice(st.darts - inVisit);
+  const dots = [0, 1, 2].map(i => `<i class="${i < vis.length ? (vis[i] > 0 ? 'h' : 'm') : ''}"></i>`).join('');
+  const btns = cfg.target === 'any' && cfg.skip
+    ? bigBtns([{ a: 'atw', v: 0, l: 'Daneben' }, { a: 'atw', v: 1, l: 'Single', s: 'weiter 1' }, { a: 'atw', v: 2, l: 'Double', s: 'weiter 2' }, { a: 'atw', v: 3, l: 'Triple', s: 'weiter 3', dis: cur === 25 }])
+    : bigBtns([{ a: 'atw', v: 0, l: 'Daneben' }, { a: 'atw', v: 1, l: 'Treffer', s: atwTarget(cur, cfg.target), go: true }]);
+  return `${pbar('Rund um die Uhr', atwName(cfg))}
+    <div class="pmain"><div class="stage">
+      ${trTop('Ziel', atwTarget(cur, cfg.target), `<b>${Math.min(st.idx + 1, st.seq.length)}</b> von ${st.seq.length}<br>Aufnahme ${Math.floor(st.darts / 3) + 1}`)}
+      <div class="trboard">${boardSVG({ hl: { done: st.seq.slice(0, st.idx), target: cur, ring: cfg.target }, label: `Fortschritt: ${st.idx} von ${st.seq.length} geschafft` })}</div>
+      <div class="stats3"><div><b>${st.darts}</b>Darts</div><div><b>${st.hits}</b>Treffer</div><div><b>${pct(st.hits, st.darts)}</b>Quote</div></div>
+    </div>
+    <div class="pad"><div class="dots" aria-label="${vis.length} von 3 Darts dieser Aufnahme">Aufnahme ${dots}</div>${btns}</div></div>`;
+}
+function vBobs(s) {
+  const st = bobsState(s), cur = BOBS_SEQ[st.i], val = cur === 25 ? 50 : cur * 2;
+  const strip = BOBS_SEQ.map((n, i) => { const d = st.log[i]; return `<span class="${i === st.i ? 'c' : d === undefined ? '' : d > 0 ? 'p' : 'n'}" aria-label="${n === 25 ? 'Bull' : 'D' + n}${d === undefined ? '' : d > 0 ? ' getroffen' : ' verfehlt'}">${n === 25 ? 'B' : n}</span>`; }).join('');
+  return `${pbar("Bob's 27", `Runde ${st.i + 1} von 21`)}
+    <div class="pmain"><div class="stage">
+      ${trTop('Ziel', cur === 25 ? 'Bull' : 'D' + cur, `Stand<span class="big">${st.score}</span>`)}
+      <div class="trboard">${boardSVG({ hl: { target: cur, ring: 'double' }, label: `Ziel ${cur === 25 ? 'Bull' : 'Doppel ' + cur}` })}</div>
+      <div class="strip">${strip}</div>
+    </div>
+    <div class="pad"><div class="dots">Treffer in dieser Runde: je +${val}, keiner −${val}</div>
+      ${bigBtns([0, 1, 2, 3].map(h => ({ a: 'bobs', v: h, l: plural(h, 'Treffer', 'Treffer'), s: h ? '+' + h * val : '−' + val })))}</div></div>`;
+}
+function vShanghai(s) {
+  const st = shState(s), n = st.i + 1, R = s.cfg.rounds;
+  const pend = s.pending, pp = pend.reduce((a, m) => a + m * n, 0);
+  const strip = Array.from({ length: R }, (_, i) => { const d = st.log[i]; return `<span class="${i === st.i ? 'c' : d === undefined ? '' : d > 0 ? 'p' : 'n'}">${d === undefined ? i + 1 : d}</span>`; }).join('');
+  return `${pbar('Shanghai', `Runde ${n} von ${R}`)}
+    <div class="pmain"><div class="stage">
+      ${trTop(`Runde ${n} · Ziel`, n, `Punkte<span class="big">${st.score + pp}</span>`)}
+      <div class="trboard">${boardSVG({ hl: { target: n, ring: 'any' }, label: `Ziel ${n}` })}</div>
+      <div class="strip" style="grid-template-columns:repeat(${Math.min(R, 10)},minmax(0,1fr))">${strip}</div>
+      ${slotsHTML(pend.map(m => [m]), { sum: pp, label: ([m]) => m ? ['', 'S', 'D', 'T'][m] + n : '0' })}
+    </div>
+    <div class="pad"><div class="dots">Single, Double und Triple in einer Runde ist ein Shanghai</div>
+      ${bigBtns([{ a: 'sh', v: 0, l: 'Daneben' }, { a: 'sh', v: 1, l: 'Single', s: '+' + n }, { a: 'sh', v: 2, l: 'Double', s: '+' + 2 * n }, { a: 'sh', v: 3, l: 'Triple', s: '+' + 3 * n }])}</div></div>`;
+}
+function hvPad(t) {
+  if (typeof t === 'number') return bigBtns([{ a: 'hv', v: '0:0', l: 'Daneben' }, { a: 'hv', v: `${t}:1`, l: 'S' + t, s: '+' + t }, { a: 'hv', v: `${t}:2`, l: 'D' + t, s: '+' + 2 * t }, { a: 'hv', v: `${t}:3`, l: 'T' + t, s: '+' + 3 * t }]);
+  if (t === 'B') return bigBtns([{ a: 'hv', v: '0:0', l: 'Daneben' }, { a: 'hv', v: '25:1', l: '25', s: '+25' }, { a: 'hv', v: '25:2', l: 'Bull', s: '+50' }]);
+  const m = t === 'D' ? 2 : 3, pre = t === 'D' ? 'D' : 'T';
+  return `<div class="keys k5">${Array.from({ length: 20 }, (_, i) => `<button class="key" data-a="hv" data-v="${i + 1}:${m}">${pre}${i + 1}</button>`).join('')}</div>
+    <div class="keys ${t === 'D' ? 'k3' : 'k3'}">${t === 'D' ? '<button class="key" data-a="hv" data-v="25:2">D-Bull</button>' : '<span></span>'}<button class="key txt" data-a="hv" data-v="0:0" style="grid-column:span 2">Daneben</button></div>`;
+}
+function vHalve(s) {
+  const st = hvState(s), t = HALVE_SEQ[st.i], pend = s.pending;
+  const pp = pend.reduce((a, d) => a + hvPoints(t, d), 0);
+  const strip = HALVE_SEQ.map((x, i) => { const d = st.log[i]; return `<span class="${i === st.i ? 'c' : d === undefined ? '' : d > 0 ? 'p' : 'n'}">${hvLabel(x) === 'Doppel' ? 'D' : hvLabel(x) === 'Triple' ? 'T' : hvLabel(x)}<small>${d === undefined ? '' : d > 0 ? '+' + d : '½'}</small></span>`; }).join('');
+  const ring = t === 'D' ? 'double' : t === 'T' ? 'treble' : 'any';
+  return `${pbar('Halve-It', `Runde ${st.i + 1} von 9`)}
+    <div class="pmain"><div class="stage">
+      ${trTop('Ziel', hvLabel(t), `Stand<span class="big">${st.score}</span>${pp ? `<b>+${pp}</b> in dieser Runde` : 'ohne Treffer: halbiert'}`)}
+      <div class="trboard">${boardSVG({ hl: typeof t === 'number' || t === 'B' ? { target: t === 'B' ? 25 : t, ring } : { all: ring }, label: `Ziel ${hvLabel(t)}` })}</div>
+      <div class="strip s9">${strip}</div>
+      ${slotsHTML(pend, { sum: pp })}
+    </div>
+    <div class="pad">${hvPad(t)}</div></div>`;
+}
+function vAttempt(s) {
+  const A = attemptOf(s), ev = coEval(A.t, s.pending);
+  const used = s.pending.length, dlVisit = 3 - (used % 3), left = A.darts - used;
+  const ok = s.attempts.filter(a => a.ok).length;
+  const groups = [];
+  for (let g = 0; g < A.darts / 3; g++) groups.push(slotsHTML(s.pending.slice(g * 3, g * 3 + 3)));
+  const is121 = s.kind === 'c121';
+  const side = is121
+    ? `Versuch <b>${s.attempts.length + 1}</b> von ${s.cfg.count}<br>höchstes Finish <b>${c121State(s).best || '–'}</b>`
+    : `Versuch <b>${s.attempts.length + 1}</b> von ${s.cfg.count}<br>gecheckt <b>${ok}</b> · noch ${plural(left, 'Dart', 'Darts')}`;
+  return `${pbar(is121 ? '121' : 'Checkout-Training', is121 ? `Ziel ${A.t} · 9 Darts` : `${s.cfg.range.replace('-', '–')} · ${s.cfg.darts} Darts pro Versuch`)}
+    <div class="pmain"><div class="stage" style="justify-content:flex-end">
+      ${trTop(`Rest · Start ${A.t}`, ev.r, side)}
+      ${coStrip(ev.r, Math.min(dlVisit, left), 'double')}
+      <div class="co-slots">${groups.join('')}</div>
+    </div>
+    <div class="pad">${dartPad({ head: false, extra: '<button class="btn small" data-a="cogiveup">Versuch aufgeben</button>' })}</div></div>`;
+}
+function vScoring(s) {
+  const n = s.scores.length, tot = s.scores.reduce((a, b) => a + b, 0), hi = Math.max(0, ...s.scores);
+  const bars = s.scores.slice(-33).map((v, i, a) => `<span class="${i === a.length - 1 ? 'last' : ''}" style="height:${Math.max(2, v / 180 * 100)}%"></span>`).join('');
+  const e = +UI.entry;
+  const hint = UI.entry === '' ? 'Punkte dieser Aufnahme' : POSSIBLE_TOTALS.has(e) ? `Ø danach ${f1((tot + e) / (n + 1))}` : 'Mit 3 Darts nicht möglich';
+  return `${pbar('Scoring', `Aufnahme ${Math.min(n + 1, s.cfg.visits)} von ${s.cfg.visits}`)}
+    <div class="pmain"><div class="stage" style="justify-content:flex-end">
+      ${trTop('3-Dart-Average', n ? f1(tot / n) : '0,0', `Höchste <b>${hi}</b><br>Gesamt <b>${tot}</b>`)}
+      <div class="bars" role="img" aria-label="Punkte je Aufnahme">${bars}</div>
+    </div>
+    <div class="pad">${sumPad({ hint, bad: UI.entry !== '' && !POSSIBLE_TOTALS.has(e), sw: false, quick: [26, 41, 45, 60, 81, 100] })}</div></div>`;
+}
+
+// ================= Summary =================
+function vSummary() {
+  const s = DB.current;
+  if (!s) return vTabs();
+  const e = DB.history.find(h => h.id === s.id) || summarize(s);
+  const rec = s.newRecord ? '<span class="badge">Neuer Bestwert</span>' : '';
+  const prev = s.prevRecord;
+  let title = '', hero = '', body = '';
+  if (GAME_KINDS.includes(s.kind)) {
+    const W = e.players[e.winner];
+    title = `${histName(W)} gewinnt`;
+    const main = s.cfg.sets ? e.players.map(p => p.sets).join(' : ') : e.players.map(p => p.legs).join(' : ');
+    hero = `<div class="score">${main}</div><p class="dim">${s.cfg.sets ? `in Sets, Legs insgesamt ${e.players.map(p => p.legs).join(' : ')}` : 'in Legs'}<br>${s.kind === 'x01' ? `${s.cfg.start} ${outLabel(s.cfg.out)}` : 'Cricket'} · ${formatLabel(s.cfg)}</p>`;
+    const rows = s.kind === 'x01' ? [
+      ['3-Dart-Average', p => f1(p.avg), p => p.avg],
+      ['First 9 Average', p => f1(p.f9), p => p.f9],
+      ['Darts', p => p.darts],
+      ['100+', p => p.t100], ['140+', p => p.t140], ['180', p => p.t180],
+      ['Höchstes Finish', p => p.hi || '–', p => p.hi],
+      ['Bestes Leg', p => p.best ? `${p.best} Darts` : '–'],
+      ['Checkout-Quote', p => p.dA ? `${pct(p.dH, p.dA)}<small class="sub-v">${p.dH} von ${p.dA}</small>` : '–'],
+    ] : [['Marks pro Runde', p => f1(p.mpr), p => p.mpr], ['Legs', p => p.legs]];
+    body = `<div class="tbl"><table class="st"><thead><tr><th></th>${e.players.map(p => `<th>${esc(histName(p))}</th>`).join('')}</tr></thead><tbody>
+      ${rows.map(([l, f, g]) => { const mx = g ? Math.max(...e.players.map(g)) : null; return `<tr><td>${l}</td>${e.players.map(p => `<td class="${g && e.players.length > 1 && g(p) === mx && mx > 0 ? 'win' : ''}">${f(p)}</td>`).join('')}</tr>`; }).join('')}
+      </tbody></table></div>${s.kind === 'x01' ? '<p class="group-f">Die Checkout-Quote zählt nur Aufnahmen, die Pfeil für Pfeil eingegeben wurden. ● markiert den besseren Wert.</p>' : ''}`;
+  } else if (s.kind === 'atw') {
+    title = `${e.darts} Darts`;
+    hero = `<p class="dim">${atwName(s.cfg)} · ${e.hits} Treffer · Quote ${pct(e.hits, e.darts)}${prev !== null && !s.newRecord ? ` · Bestwert ${prev} Darts` : ''}</p>`;
+  } else if (s.kind === 'bobs') {
+    title = `${e.score} Punkte`;
+    hero = `<p class="dim">${e.dead ? `Ausgeschieden bei ${BOBS_SEQ[e.reached - 1] === 25 ? 'Bull' : 'D' + BOBS_SEQ[e.reached - 1]}` : 'Alle 21 Runden geschafft'}${prev !== null && !s.newRecord ? ` · Bestwert ${prev}` : ''}</p>`;
+  } else if (s.kind === 'shanghai') {
+    title = e.shanghai ? 'Shanghai!' : `${e.score} Punkte`;
+    hero = `<p class="dim">${e.shanghai ? `Gewonnen in Runde ${e.reached} mit ${e.score} Punkten` : `${s.cfg.rounds} Runden gespielt`}${prev !== null && !s.newRecord ? ` · Bestwert ${prev}` : ''}</p>`;
+  } else if (s.kind === 'halve') {
+    title = `${e.score} Punkte`;
+    const st = hvState(s);
+    hero = `<p class="dim">${st.log.filter(x => x === 0).length}× halbiert${prev !== null && !s.newRecord ? ` · Bestwert ${prev}` : ''}</p>`;
+  } else if (s.kind === 'c121' || s.kind === 'checkout') {
+    if (s.kind === 'c121') { title = e.best ? `Bis ${e.best}` : 'Kein Finish'; hero = `<p class="dim">${e.ok} von ${e.n} Versuchen gecheckt${prev !== null && !s.newRecord ? ` · Bestwert ${prev}` : ''}</p>`; }
+    else { title = `${e.ok} von ${e.n}`; hero = `<p class="dim">Quote ${pct(e.ok, e.n)} · ${s.cfg.range.replace('-', '–')} · ${s.cfg.darts} Darts pro Versuch</p>`; }
+    body = `<div class="tbl"><table class="st"><thead><tr><th>Rest</th><th>Weg</th><th>Ergebnis</th></tr></thead><tbody>${s.attempts.map(a => { const rt = bestRoute(a.t, 3, 'double'); return `<tr><td>${a.t}</td><td>${rt ? rt.darts.map(dartLabel).join(' ') : ''}</td><td>${a.ok ? 'gecheckt' : 'verfehlt'}</td></tr>`; }).join('')}</tbody></table></div>`;
+  } else if (s.kind === 'scoring') {
+    title = `Ø ${f1(e.avg)}`;
+    hero = `<p class="dim">${e.total} Punkte in ${e.n} Aufnahmen · höchste ${e.hi}${prev !== null && !s.newRecord ? ` · Bestwert Ø ${f1(prev)}` : ''}</p>`;
+  }
+  const eyebrow = GAME_KINDS.includes(s.kind) ? 'Match beendet' : KIND_NAME[s.kind];
+  return `<div class="view">
+    <div class="topbar" id="topbar"><span></span><div class="tb-title">${esc(title)}</div><div class="tb-r"><button class="gcap glass" data-a="exit">Fertig</button></div></div>
+    <div class="scroll" data-key="summary"><main class="content">
+      <div class="hero"><span class="fn dim">${eyebrow}</span>${rec}<h1 class="lt">${esc(title)}</h1>${hero}</div>${body}
+      <div class="actions"><button class="btn fill" data-a="again">${GAME_KINDS.includes(s.kind) ? 'Revanche spielen' : 'Noch einmal'}</button><button class="btn" data-a="undo">Letzte Eingabe zurücknehmen</button></div>
+    </main></div>
+  </div>`;
+}
+
+// ================= Sheets =================
+function vSheet() {
+  const m = UI.sheet;
+  if (!m) return '';
+  let inner = '';
+  if (m.kind === 'co') {
+    const opts = [1, 2, 3].filter(d => d >= m.min);
+    inner = `<h2 id="sheet-t">Checkout ${m.total}</h2><p>Mit wie vielen Darts hast du gecheckt?</p>
+      <div class="sheet-acts row">${opts.map(d => `<button class="btn fill" data-a="codarts" data-v="${d}">${plural(d, 'Dart', 'Darts')}</button>`).join('')}</div>
+      <div class="sheet-acts"><button class="btn" data-a="sheetx">Abbrechen</button></div>`;
+  } else if (m.kind === 'export') {
+    inner = `<h2 id="sheet-t">Daten kopieren</h2><p>Kopiere diesen Code und füge ihn in der anderen App unter Statistik → Daten einfügen ein.</p>
+      <textarea class="code" id="xfer" readonly aria-label="Übertragungscode">${esc(m.code)}</textarea>
+      <div class="sheet-acts"><button class="btn fill" data-a="copyCode">Code kopieren</button><button class="btn" data-a="sheetx">Fertig</button></div>`;
+  } else if (m.kind === 'import') {
+    inner = `<h2 id="sheet-t">Daten einfügen</h2><p>Füge den Code aus der anderen App ein. Vorhandene Spiele bleiben erhalten.</p>
+      <textarea class="code" id="xfer" placeholder="OCHE1.…" aria-label="Übertragungscode" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+      <div class="sheet-acts"><button class="btn fill" data-a="importData">Daten übernehmen</button><button class="btn" data-a="sheetx">Abbrechen</button></div>`;
+  } else if (m.kind === 'confirm') {
+    inner = `<h2 id="sheet-t">${m.title}</h2><p>${m.text}</p>
+      <div class="sheet-acts"><button class="btn destr" data-a="${m.a}">${m.action}</button><button class="btn" data-a="sheetx">Abbrechen</button></div>`;
+  }
+  return `<div class="sheet-wrap"><div class="scrim" data-a="sheetx"></div><div class="sheet glass" role="dialog" aria-modal="true" aria-labelledby="sheet-t"><div class="grabber"></div>${inner}</div></div>`;
+}
+
+// ================= Render & navigation =================
+let wakeLock = null, wakeBusy = false;
+async function wake(on) {
+  try {
+    if (on && !wakeLock && !wakeBusy && 'wakeLock' in navigator && document.visibilityState === 'visible') {
+      wakeBusy = true;
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeBusy = false;
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!on && wakeLock) { const w = wakeLock; wakeLock = null; await w.release(); }
+  } catch (e) { wakeLock = null; wakeBusy = false; }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && UI.view === 'play') wake(true); });
+function setCompact(v) {
+  if (UI.compact === v) return;
+  UI.compact = v;
+  const tb = $app.querySelector('.tabbar');
+  if (tb) tb.classList.toggle('compact', v);
+}
+function bindScroll() {
+  const sc = $app.querySelector('.scroll');
+  if (!sc) return;
+  const key = sc.dataset.key;
+  if (UI.scroll[key]) sc.scrollTop = UI.scroll[key];
+  const tb = document.getElementById('topbar');
+  let last = sc.scrollTop;
+  const upd = () => {
+    const y = sc.scrollTop;
+    UI.scroll[key] = y;
+    if (tb) tb.classList.toggle('scrolled', y > 34);
+    if (window.innerWidth < 900) {
+      if (y > 90 && y - last > 4) setCompact(true);
+      else if (last - y > 4 || y < 40) setCompact(false);
+    }
+    last = y;
+  };
+  sc.addEventListener('scroll', upd, { passive: true });
+  upd();
+}
+function bindGlass() {
+  const tb = $app.querySelector('.tabbar');
+  if (!tb) return;
+  tb.addEventListener('pointermove', e => { const r = tb.getBoundingClientRect(); tb.style.setProperty('--gx', Math.round((e.clientX - r.left) / r.width * 100) + '%'); });
+}
+function render() {
+  const v = UI.view;
+  const html = v === 'setup' ? vSetup() : v === 'play' ? vPlay() : v === 'summary' ? vSummary() : vTabs();
+  $app.innerHTML = html + vSheet();
+  bindScroll(); bindChart(); bindGlass();
+  const focus = $app.querySelector('.sheet textarea:not([readonly])') || $app.querySelector('.sheet .btn');
+  if (focus) focus.focus({ preventScroll: true });
+  wake(v === 'play');
+}
+// Views morph into each other: push/pop slide sideways, full-screen games rise from the bottom.
+function nav(fn, dir = 'fade') {
+  const run = () => { fn(); render(); maybeBot(); };
+  if (!document.startViewTransition || document.visibilityState !== 'visible') { run(); return; }
+  document.documentElement.dataset.nav = reduceMotion() ? 'fade' : dir;
+  try {
+    const t = document.startViewTransition(run);
+    t.finished.finally(() => { delete document.documentElement.dataset.nav; });
+  } catch (e) { run(); }
+}
+function startSession(kind) {
+  cancelBot();
+  UI.entry = ''; UI.mod = 1; UI.sheet = null;
+  nav(() => { DB.current = newSession(kind); UI.view = 'play'; save(); }, 'up');
+}
+
+// ================= Actions =================
+let cfgTimer = null;
+const ACT = {
+  tab(v) {
+    if (v === UI.tab) {
+      if (UI.compact) setCompact(false);
+      else { const sc = $app.querySelector('.scroll'); if (sc) sc.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' }); }
+      return;
+    }
+    nav(() => { UI.tab = v; UI.compact = false; }, 'fade');
+  },
+  setup(v) { nav(() => { UI.setup = v; UI.view = 'setup'; UI.scroll['setup-' + v] = 0; }, 'push'); },
+  back() { nav(() => { UI.view = 'tabs'; }, 'pop'); },
+  cfg(v, el) {
+    setCfg(el.dataset.k, v);
+    save();
+    const seg = el.parentElement, btns = [...seg.children];
+    seg.style.setProperty('--i', btns.indexOf(el));
+    btns.forEach(b => b.setAttribute('aria-pressed', String(b === el)));
+    clearTimeout(cfgTimer);
+    cfgTimer = setTimeout(render, 380);
+  },
+  step(v, el) {
+    const [a, b] = el.dataset.k.split('.');
+    DB.settings[a][b] = Math.max(+el.dataset.min, Math.min(+el.dataset.max, DB.settings[a][b] + +v));
+    save(); render();
+  },
+  botstep(v, el) {
+    const p = DB.settings.players[+v];
+    p.bot = Math.max(20, Math.min(110, botAvg(p.bot) + +el.dataset.d));
+    save(); render();
+  },
+  padd(v) {
+    const P = DB.settings.players;
+    if (P.length >= 4) return;
+    P.push(v === 'b' ? { bot: 45 } : { name: `Spieler ${P.filter(p => !p.bot).length + 1}` });
+    save(); render();
+    if (v !== 'b') { const inp = document.getElementById('pn' + (P.length - 1)); if (inp) { inp.focus(); inp.select(); } }
+  },
+  pdel(v) { DB.settings.players.splice(+v, 1); save(); render(); },
+  pup(v) { const P = DB.settings.players, i = +v; [P[i - 1], P[i]] = [P[i], P[i - 1]]; save(); render(); },
+  start(v) {
+    if (GAME_KINDS.includes(v) && DB.settings.players.every(p => p.bot)) return;
+    startSession(v);
+  },
+  quickbot() {
+    const S = DB.settings;
+    if (!S.players.some(p => !p.bot)) S.players.unshift({ name: 'Spieler 1' });
+    if (!S.players.some(p => p.bot)) { if (S.players.length >= 4) S.players.length = 3; S.players.push({ bot: 45 }); }
+    if (S.players.length > 4) S.players.length = 4;
+    startSession('x01');
+  },
+  resume() { if (!DB.current) return; UI.entry = ''; nav(() => { UI.view = DB.current.finished ? 'summary' : 'play'; }, 'up'); },
+  discardAsk() {
+    if (DB.current && DB.current.finished) { ACT.discard(); return; }
+    UI.sheet = { kind: 'confirm', title: 'Spiel beenden?', text: 'Das laufende Spiel wird verworfen und nicht in der Statistik gespeichert.', action: 'Spiel verwerfen', a: 'discard' };
+    render();
+  },
+  discard() { cancelBot(); DB.current = null; UI.sheet = null; save(); render(); },
+  wipeAsk() { UI.sheet = { kind: 'confirm', title: 'Statistik löschen?', text: 'Alle gespeicherten Spiele, Averages und Trainingsrekorde auf diesem Gerät werden gelöscht. Das lässt sich nicht rückgängig machen.', action: 'Alles löschen', a: 'wipe' }; render(); },
+  wipe() { DB.history = []; UI.sheet = null; save(); render(); banner('Statistik gelöscht', 'good'); },
+  sheetx() {
+    const m = UI.sheet;
+    UI.sheet = null;
+    render();
+    if (m && m.kind === 'co') maybeBot();
+  },
+  leave() { cancelBot(); nav(() => { UI.view = 'tabs'; UI.tab = 'play'; }, 'down'); },
+  exit() { cancelBot(); nav(() => { DB.current = null; UI.view = 'tabs'; save(); }, 'down'); },
+  undo() { undo(); },
+  imode(v) { DB.settings.inputMode = v; UI.entry = ''; if (DB.current && DB.current.pending) DB.current.pending = []; save(); render(); },
+  key(v) {
+    const n = (UI.entry === '0' ? '' : UI.entry) + v;
+    if (+n > 180 || n.length > 3) return;
+    UI.entry = n;
+    render();
+  },
+  keydel() { UI.entry = UI.entry.slice(0, -1); render(); },
+  ok() { if (UI.entry === '') { banner('Tippe zuerst die Punkte ein, für eine Null die 0.'); return; } submitTotal(+UI.entry); },
+  quick(v) { submitTotal(+v); },
+  codarts(v) { const m = UI.sheet; UI.sheet = null; commitVisit({ p: m.p, total: m.total, darts: +v, bust: false }); },
+  mod(v) { UI.mod = UI.mod === +v ? 1 : +v; render(); },
+  pdel() {
+    const s = DB.current;
+    if (s.kind === 'checkout' || s.kind === 'c121') { undo(); return; }
+    if (s.pending && s.pending.length) { s.pending.pop(); save(); render(); } else undo();
+  },
+  dart(v) {
+    const s = DB.current;
+    if (!s || UI.bot) return;
+    let n = +v, m = UI.mod;
+    if (n === 0) m = 0;
+    else if (n === 50) { n = 25; m = 2; }
+    else if (n === 25 && m === 3) return;
+    if (s.kind === 'x01') x01Dart(n, m);
+    else if (s.kind === 'cricket') cricketDart(n, m);
+    else coDart(n, m);
+  },
+  ckrest() {
+    const s = DB.current;
+    while (s.pending.length < 3) s.pending.push([0, 0]);
+    commitVisit({ p: cricketState(s).turn, list: s.pending.slice() });
+  },
+  botskip() {
+    if (!UI.bot || !botStep) return;
+    clearTimeout(botTimer);
+    UI.bot.shown = UI.bot.throws.length;
+    render();
+    botTimer = setTimeout(botStep, 450);
+  },
+  atw(v) {
+    const s = DB.current;
+    s.throws.push(+v);
+    if (atwState(s).done) { finishSession(); return; }
+    save(); render();
+  },
+  bobs(v) {
+    const s = DB.current;
+    s.rounds.push(+v);
+    if (bobsState(s).done) { finishSession(); return; }
+    save(); render();
+  },
+  sh(v) {
+    const s = DB.current;
+    s.pending.push(+v);
+    if (s.pending.length === 3) {
+      s.rounds.push(s.pending); s.pending = [];
+      const st = shState(s);
+      if (st.shanghai) { banner('Shanghai!', 'good', 2200); haptic(); }
+      if (st.done) { finishSession(); return; }
+    }
+    save(); render();
+  },
+  hv(v) {
+    const s = DB.current, [n, m] = v.split(':').map(Number);
+    s.pending.push([n, m]);
+    if (s.pending.length === 3) {
+      const t = HALVE_SEQ[hvState(s).i];
+      const pts = s.pending.reduce((a, d) => a + hvPoints(t, d), 0);
+      s.rounds.push(s.pending); s.pending = [];
+      if (!pts) { banner('Kein Treffer: Stand halbiert', 'bad', 1600); haptic(); }
+      if (hvState(s).done) { finishSession(); return; }
+    }
+    save(); render();
+  },
+  cogiveup() { coFinish(false); },
+  again() {
+    const s = DB.current;
+    if (!s) return;
+    nav(() => {
+      if (GAME_KINDS.includes(s.kind)) {
+        const players = s.players.slice(1).concat(s.players.slice(0, 1));
+        DB.current = { ...newSession(s.kind), cfg: clone(s.cfg), players: clone(players) };
+      } else {
+        DB.current = { ...newSession(s.kind), cfg: clone(s.cfg) };
+        if (s.kind === 'checkout') DB.current.cur = coNext(s.cfg, 0);
+      }
+      UI.view = 'play'; UI.entry = '';
+      save();
+    }, 'fade');
+  },
+  sp(v) { UI.statsPlayer = v; render(); },
+  exportData() {
+    const code = exportCode();
+    const shown = () => { UI.sheet = { kind: 'export', code }; render(); const t = document.getElementById('xfer'); if (t) t.select(); };
+    try {
+      navigator.clipboard.writeText(code).then(() => banner('Daten kopiert. Jetzt in der anderen App einfügen.', 'good', 2600), shown);
+    } catch (e) { shown(); }
+  },
+  copyCode() {
+    const t = document.getElementById('xfer');
+    if (!t) return;
+    t.select();
+    try { navigator.clipboard.writeText(t.value).then(() => { UI.sheet = null; render(); banner('Code kopiert', 'good'); }, () => banner('Markiere den Code und kopiere ihn über das Menü.')); }
+    catch (e) { banner('Markiere den Code und kopiere ihn über das Menü.'); }
+  },
+  importAsk() { UI.sheet = { kind: 'import' }; render(); },
+  importData() {
+    const t = document.getElementById('xfer');
+    try {
+      const n = importCode(t ? t.value : '');
+      UI.sheet = null; render();
+      banner(n ? `${plural(n, 'Eintrag', 'Einträge')} übernommen` : 'Alles war schon vorhanden', 'good', 2400);
+    } catch (e) { banner('Der Code ist unvollständig. Kopiere ihn noch einmal vollständig.', 'bad', 2600); }
+  },
+};
+function submitTotal(t) {
+  const s = DB.current;
+  if (!s) return;
+  if (s.kind === 'x01') x01SubmitTotal(t);
+  else if (s.kind === 'scoring') {
+    if (!POSSIBLE_TOTALS.has(t)) { UI.entry = ''; banner(`${t} ist mit drei Darts nicht möglich. Bitte prüfe die Eingabe.`, 'bad', 2400); render(); return; }
+    s.scores.push(t); UI.entry = '';
+    if (t === 180) banner('180!', 'good', 1600);
+    if (s.scores.length >= s.cfg.visits) { finishSession(); return; }
+    save(); render();
+  }
+}
+$app.addEventListener('click', e => {
+  const el = e.target.closest('[data-a]');
+  if (!el || el.disabled) return;
+  const fn = ACT[el.dataset.a];
+  if (fn) fn(el.dataset.v, el);
+});
+$app.addEventListener('input', e => {
+  const el = e.target;
+  if (el.classList.contains('tf') && el.dataset.pi !== undefined) { DB.settings.players[+el.dataset.pi].name = el.value; save(); }
+});
+$app.addEventListener('change', e => {
+  const el = e.target;
+  if (el.tagName === 'SELECT' && el.dataset.k) { setCfg(el.dataset.k, el.value); save(); render(); }
+  else if (el.tagName === 'SELECT' && el.dataset.pi !== undefined) { DB.settings.players[+el.dataset.pi].bot = +el.value; save(); render(); }
+  else if (el.classList.contains('switch') && el.dataset.k) { setCfg(el.dataset.k, el.checked); save(); setTimeout(render, 250); }
+});
+$app.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.classList.contains('tf')) e.target.blur();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && UI.sheet) { ACT.sheetx(); return; }
+  if (UI.view !== 'play' || !DB.current || e.target.tagName === 'INPUT') return;
+  const k = DB.current.kind;
+  if ((k === 'x01' && DB.settings.inputMode === 'sum') || k === 'scoring') {
+    if (/^\d$/.test(e.key)) ACT.key(e.key);
+    else if (e.key === 'Backspace') ACT.keydel();
+    else if (e.key === 'Enter') ACT.ok();
+  }
+});
+
+// ================= Boot =================
+function start(data) {
+  load();
+  if (data && data.view) { UI.view = data.view; UI.tab = data.tab || 'play'; UI.setup = data.setup || null; }
+  else if (DB.current && DB.current.finished) UI.view = 'summary';
+  if ((UI.view === 'play' || UI.view === 'summary') && !DB.current) UI.view = 'tabs';
+  if (UI.view === 'setup' && !SETUP[UI.setup]) UI.view = 'tabs';
+  if (!['tabs', 'setup', 'play', 'summary'].includes(UI.view)) UI.view = 'tabs';
+  render();
+  maybeBot();
+}
+if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ view: UI.view, tab: UI.tab, setup: UI.setup }));
+if (window.claude && window.claude.hot && window.claude.hot.ready) window.claude.hot.ready(start);
+else start((window.claude && window.claude.hot && window.claude.hot.data) || {});
+
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+</script>
+</body>
+</html>
